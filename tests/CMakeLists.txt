@@ -1,0 +1,18 @@
+cmake_minimum_required(VERSION 3.10)
+
+project(simpleLogTests)
+
+#GTEST
+enable_testing()
+find_package(GTest REQUIRED)
+include(GoogleTest)
+
+set(LOG_INCLUDE "../src/")
+set(HEADER_FILES ${LOG_INCLUDE}/logging.h  ${LOG_INCLUDE}/interfaces.h ${LOG_INCLUDE}/sinks.h ${LOG_INCLUDE}/formaters.h ${LOG_INCLUDE}/filters.h ${LOG_INCLUDE}/log_settings.h)
+set(SOURCE_FILES tests.cpp)
+
+add_executable(runUnitTests ${SOURCE_FILES} ${HEADER_FILES})
+target_include_directories(runUnitTests PRIVATE ${LOG_INCLUDE})
+target_link_libraries(runUnitTests simpleLog)
+
+add_test( runUnitTests runUnitTests )
