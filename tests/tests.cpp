@@ -4,30 +4,30 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
+#include <gtest/gtest.h>
+
 #include "logging.h"
-#include "sinks.h"
+#include "sinksimp.h"
 
 using namespace simplelogger;
 
-class NullStream : public std::ostream {
-public:
-	NullStream() : std::ostream(nullptr) {}
-	NullStream(const NullStream&) : std::ostream(nullptr) {}
-};
+//TEST(simpleLogger, test1)
+//{
+//	LogSettings::Instance().AddSink(SinkPtr(new SinkFile("test.log")));
+//	LogSettings::Instance().AddSink(SinkPtr(new SinkCout));
+//	LOG(LogLevel::ERROR) << "Hello, world!";
+//}
 
-template <class T>
-NullStream& operator<<(NullStream& os, const T& value) {
-	return os;
-}
 
 int main() {
+
 	std::string AREA1("AREA1");
 
 	std::shared_ptr<AreaFilter> filter(new AreaFilter);
 	filter->SetFilter(AREA1, LogLevel::WARNING);
 
-	LogSettings::Instance().AddSink(SinkPtr(new SinkFile("test.log", filter)));
-	LogSettings::Instance().AddSink(SinkPtr(new SinkCout(filter)));
+	LogSettings::Instance().AddSink(FilteredSinkPtr(new FilteredSink(SinkPtr(new SinkFile("test.log")))));
+	LogSettings::Instance().AddSink(FilteredSinkPtr(new FilteredSink(SinkPtr(new SinkCout))));
 	LogSettings::Instance().SetReportingLevel(LogLevel::TRACE);
 
 	LOG(LogLevel::INFO) << "Hello, world!\n";
@@ -53,5 +53,7 @@ int main() {
 
 	//	std::cout << "Duration of " << NUM << " logs = " << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() << " ms\n";
 	//}
+
+
 }
 

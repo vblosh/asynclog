@@ -1,6 +1,4 @@
 #pragma once
-#include <iostream>
-#include <fstream>
 
 #include "filters.h"
 #include "formaters.h"
@@ -8,61 +6,38 @@
 namespace simplelogger
 {
 
-using  SinkPtr=std::shared_ptr<IFilteredSink>;
+using  FilteredSinkPtr=std::shared_ptr<IFilteredSink>;
+using  SinkPtr = std::shared_ptr<ISink>;
+using  FilterPtr = std::shared_ptr<IFilter>;
+using  FormatterPtr = std::shared_ptr<IFormatter>;
+
 
 // composite pattern, make possible to use many sinks
 class SinkComposite : public IFilteredSink
 {
-    std::vector<SinkPtr> sinks;
+    std::vector<FilteredSinkPtr> sinks;
 
 public:
     void Log(const Logdata& logdata) override;
 
     bool Enabled(const Logdata& logdata) override;
 
-    void AddSink(const SinkPtr& os);
+    void AddSink(const FilteredSinkPtr& os);
 };
 
-// Discards all log messages
-struct SinkNull : IFilteredSink
+class FilteredSink : public IFilteredSink
 {
-    void Log(const Logdata&) override {}
-    bool Enabled(const Logdata& logdata) override { return false; }
-};
-
-class SinkCout : public IFilteredSink
-{
-    std::shared_ptr<IFilter> filter;
-    std::shared_ptr<IFormatter> formatter;
+protected:
+    SinkPtr sink;
+    FilterPtr filter;
 
 public:
-
-    SinkCout(std::shared_ptr<IFilter> afilter = std::shared_ptr<IFilter>(new AreaFilter())
-        , std::shared_ptr<IFormatter> logformatter = std::shared_ptr<IFormatter>(new LogFormatter()));
-
-    ~SinkCout() override;
+    FilteredSink(SinkPtr asink, FilterPtr afilter = FilterPtr(new AreaFilter()));
 
     void Log(const Logdata& logdata) override;
 
     bool Enabled(const Logdata& logdata) override;
 };
 
-class SinkFile : public IFilteredSink
-{
-    std::ofstream ofs;
-    std::shared_ptr<IFilter> filter;
-    std::shared_ptr<IFormatter> formatter;
-
-public:
-
-    SinkFile(const std::string& filename, std::shared_ptr<IFilter> afilter = std::shared_ptr<IFilter>(new AreaFilter())
-        , std::shared_ptr<IFormatter> logformatter = std::shared_ptr<IFormatter>(new LogFormatter()));
-
-    ~SinkFile() override;
-
-    void Log(const Logdata& logdata) override;
-
-    bool Enabled(const Logdata& logdata) override;
-};
 
 }

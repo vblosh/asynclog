@@ -20,47 +20,22 @@ bool SinkComposite::Enabled(const Logdata& logdata)
     return false;
 }
 
-void SinkComposite::AddSink(const SinkPtr& os)
+void SinkComposite::AddSink(const FilteredSinkPtr& os)
 {
     sinks.push_back(os);
 }
 
-SinkCout::SinkCout(std::shared_ptr<IFilter> afilter, std::shared_ptr<IFormatter> logformatter)
-    : filter(afilter), formatter(logformatter)
+FilteredSink::FilteredSink(SinkPtr asink, FilterPtr afilter)
+    : sink(asink), filter(afilter)
 {
 }
 
-SinkCout::~SinkCout()
+void FilteredSink::Log(const Logdata& logdata)
 {
+    sink->Log(logdata);
 }
 
-void SinkCout::Log(const Logdata& logdata)
-{
-    formatter->Format(std::cout, logdata);
-}
-
-bool SinkCout::Enabled(const Logdata& logdata)
-{
-    return filter->Enabled(logdata);
-}
-
-SinkFile::SinkFile(const std::string& filename, std::shared_ptr<IFilter> afilter, std::shared_ptr<IFormatter> logformatter)
-    : filter(afilter), formatter(logformatter)
-{
-    ofs.open(filename.c_str(), std::ios::out | std::ios::trunc);
-}
-
-SinkFile::~SinkFile()
-{
-    ofs.close();
-}
-
-void SinkFile::Log(const Logdata& logdata)
-{
-    formatter->Format(ofs, logdata);
-}
-
-bool SinkFile::Enabled(const Logdata& logdata)
+bool FilteredSink::Enabled(const Logdata& logdata)
 {
     return filter->Enabled(logdata);
 }

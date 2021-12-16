@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include "interfaces.h"
 #include "sinks.h"
 
@@ -7,7 +8,7 @@ namespace simplelogger
 
 class LogSettings
 {
-    SinkComposite sinks;
+    std::unique_ptr<SinkComposite> sinks;
     LogLevel reportingLevel;
 
 public:
@@ -17,17 +18,17 @@ public:
         return _instance;
     }
 
-    LogSettings() : reportingLevel(LogLevel::ERROR)
+    LogSettings() : sinks(new SinkComposite), reportingLevel(LogLevel::ERROR)
     {}
 
-    void AddSink(const SinkPtr& os)
+    void AddSink(const FilteredSinkPtr& os)
     {
-        sinks.AddSink(os);
+        sinks->AddSink(os);
     }
 
     IFilteredSink* GetSink()
     {
-        return &sinks;
+        return sinks.get();
     }
 
     LogLevel& ReportingLevel()
@@ -38,6 +39,11 @@ public:
     void SetReportingLevel(const LogLevel& level)
     {
         reportingLevel = level;
+    }
+
+    void Shutdown()
+    {
+        sinks = nullptr;
     }
 };
 
