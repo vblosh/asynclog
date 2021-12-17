@@ -13,13 +13,39 @@
 using namespace std;
 using namespace simplelogger;
 
-TEST(simpleLogger, testSink1)
-{
+class LoggerTest : public ::testing::Test {
+protected:
 	std::string area = "AREA1";
 	string message = "Hello, world!";
+
+	void SetUp() override {
+		LogSettings::Instance().SetReportingLevel(LogLevel::ERROR);
+	}
+
+	void TearDown() override {
+		LogSettings::Instance().Shutdown();
+	}
+
+	bool LogAndCheck(LogLevel level, const std::string& area, const std::string& message, TestSink* testSink) {
+		unsigned int oldCount = testSink->Count();
+		Timestamp before = std::time(nullptr);
+		LOG(LogLevel::ERROR, area) << message;
+		Timestamp after = std::time(nullptr);
+
+		bool res = true;
+		res &= testSink->Count() == oldCount + 1;
+		res &= std::difftime(after, before) >= std::difftime(testSink->LastEntry().timestamp, before);
+		res &= LogLevel::ERROR == testSink->LastEntry().severity;
+		res &= area == testSink->LastEntry().area;
+		res &= message == testSink->LastEntry().message;
+		return res;
+	}
+};
+
+TEST_F(LoggerTest, testSink1)
+{
 	TestSink* testSink = new TestSink;
 	LogSettings::Instance().AddSink(FilteredSinkPtr(new FilteredSink(SinkPtr(testSink))));
-	LogSettings::Instance().SetReportingLevel(LogLevel::ERROR);
 
 	Timestamp before = std::time(nullptr);
 	LOG(LogLevel::ERROR, area) << message;
@@ -30,31 +56,10 @@ TEST(simpleLogger, testSink1)
 	ASSERT_EQ(LogLevel::ERROR, testSink->LastEntry().severity);
 	ASSERT_EQ(area, testSink->LastEntry().area);
 	ASSERT_EQ(message, testSink->LastEntry().message);
-
-	LogSettings::Instance().Shutdown();
 }
 
-bool LogAndCheck(LogLevel level, const std::string& area, const std::string& message, TestSink* testSink)
+TEST_F(LoggerTest, testSink2)
 {
-	unsigned int oldCount = testSink->Count();
-	Timestamp before = std::time(nullptr);
-	LOG(LogLevel::ERROR, area) << message;
-	Timestamp after = std::time(nullptr);
-
-	bool res = true;
-	res &= testSink->Count() == oldCount + 1;
-	res &= std::difftime(after, before) >= std::difftime(testSink->LastEntry().timestamp, before);
-	res &= LogLevel::ERROR == testSink->LastEntry().severity;
-	res &= area == testSink->LastEntry().area;
-	res &= message == testSink->LastEntry().message;
-	return res;
-}
-
-TEST(simpleLogger, testSink2)
-{
-	std::string area = "AREA1";
-	string message = "Hello, world!";
-	
 	std::shared_ptr<TestSink> testSink1(new TestSink);
 	LogSettings::Instance().AddSink(FilteredSinkPtr(new FilteredSink(testSink1)));
 	std::shared_ptr<TestSink> testSink2(new TestSink);
@@ -63,15 +68,10 @@ TEST(simpleLogger, testSink2)
 
 	ASSERT_TRUE(LogAndCheck(LogLevel::ERROR, area, message, testSink1.get()));
 	ASSERT_TRUE(LogAndCheck(LogLevel::ERROR, area, message, testSink2.get()));
-
-	LogSettings::Instance().Shutdown();
 }
 
-TEST(simpleLogger, testReportingLevel)
+TEST_F(LoggerTest, testReportingLevel)
 {
-	std::string area = "AREA1";
-	string message = "Hello, world!";
-	
 	std::shared_ptr<TestSink> testSink(new TestSink);
 	LogSettings::Instance().AddSink(FilteredSinkPtr(new FilteredSink(testSink)));
 	LogSettings::Instance().SetReportingLevel(LogLevel::ERROR);
@@ -87,15 +87,10 @@ TEST(simpleLogger, testReportingLevel)
 	// LogLevel is greater than ReportingLevel, message logged
 	LOG(LogLevel::FATAL, area) << message;
 	ASSERT_EQ(2, testSink->Count());
-
-	LogSettings::Instance().Shutdown();
 }
 
-TEST(simpleLogger, testFilter)
+TEST_F(LoggerTest, testFilter)
 {
-	std::string area = "AREA1";
-	string message = "Hello, world!";
-
 	std::shared_ptr<AreaFilter> filter(new AreaFilter);
 	filter->SetFilter(area, LogLevel::WARNING);
 
@@ -120,7 +115,13 @@ TEST(simpleLogger, testFilter)
 	// LogLevel is less than FilterLevel, message not logged
 	LOG(LogLevel::INFO, area) << message;
 	ASSERT_EQ(2, testSink->Count());
+}
 
-	LogSettings::Instance().Shutdown();
+TEST_F(LoggerTest, testSinkFile)
+{
+	char* fileName = "test.log";
+//	LogSettings::Instance().AddSink(FilteredSinkPtr(new FilteredSink(SinkPtr(new SinkCout))));
+	LogSettings::Instance().AddSink(FilteredSinkPtr(new FilteredSink(SinkPtr(new SinkFile(fileName)))));
+	LOG(LogLevel::FATAL, area) << message;
 }
 
