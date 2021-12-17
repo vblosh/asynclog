@@ -6,7 +6,9 @@ namespace simplelogger
 void SinkComposite::Log(const Logdata& logdata)
 {
     for (auto& sink : sinks) {
-        sink->Log(logdata);
+        if (sink->Enabled(logdata)) {
+            sink->Log(logdata);
+        }
     }
 }
 

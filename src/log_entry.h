@@ -8,17 +8,17 @@ namespace simplelogger
 
 class LogEntry final
 {
-    ISink* pStream;
+    ISink* pSink;
     std::ostringstream bufStream;
     Logdata logData;
 
 public:
-    LogEntry(ISink* pSink, const Logdata& logdata) : pStream(pSink), logData(logdata) {}
+    LogEntry(ISink* pSink, Logdata&& logdata) : pSink(pSink), logData(std::forward<Logdata>(logdata)) {}
 
     ~LogEntry()
     {
         logData.message = bufStream.str();
-        pStream->Log(logData);
+        pSink->Log(logData);
     }
 
     std::ostream& Get()

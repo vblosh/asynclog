@@ -19,7 +19,7 @@ protected:
 	string message = "Hello, world!";
 
 	void SetUp() override {
-		LogSettings::Instance().SetReportingLevel(LogLevel::ERROR);
+		LogSettings::Instance().SetReportingLevel(LogLevel::TRACE);
 	}
 
 	void TearDown() override {
@@ -96,6 +96,8 @@ TEST_F(LoggerTest, testFilter)
 
 	std::shared_ptr<TestSink> testSink(new TestSink);
 	LogSettings::Instance().AddSink(FilteredSinkPtr(new FilteredSink(testSink, filter)));
+	std::shared_ptr<TestSink> testSink1(new TestSink);
+	LogSettings::Instance().AddSink(FilteredSinkPtr(new FilteredSink(testSink1)));
 	LogSettings::Instance().SetReportingLevel(LogLevel::TRACE);
 
 	// LogLevel is equal than FilterLevel, message logged
@@ -120,8 +122,46 @@ TEST_F(LoggerTest, testFilter)
 TEST_F(LoggerTest, testSinkFile)
 {
 	char* fileName = "test.log";
-//	LogSettings::Instance().AddSink(FilteredSinkPtr(new FilteredSink(SinkPtr(new SinkCout))));
+	LogSettings::Instance().AddSink(FilteredSinkPtr(new FilteredSink(SinkPtr(new SinkCout))));
 	LogSettings::Instance().AddSink(FilteredSinkPtr(new FilteredSink(SinkPtr(new SinkFile(fileName)))));
-	LOG(LogLevel::FATAL, area) << message;
+	LOG(LogLevel::ERROR, area) << message;
+}
+
+TEST_F(LoggerTest, testAsyncSinkFile)
+{
+	char* fileName = "test1.log";
+	LogSettings::Instance().AddSink(FilteredSinkPtr(new FilteredSink(SinkPtr(new AsyncFileSink(1, fileName)))));
+
+	for (size_t i = 0; i < 20; i++) {
+		LOG(LogLevel::ERROR, area) << i;
+	}
+}
+
+void DoLog()
+{
+	const size_t NUM_ITER = 100;
+	auto id = std::this_thread::get_id();
+	for (size_t i = 0; i < NUM_ITER; i++) {
+		LOG(LogLevel::INFO, "THREAD_TEST") << "thread_id=" << std::setw(6) << id << " iteration=" << i;
+	}
+}
+
+TEST_F(LoggerTest, testAsyncSinkFileMultithreaded)
+{
+	const size_t NUM_THREADS = 8;
+	char* fileName = "test2.log";
+
+	LogSettings::Instance().AddSink(FilteredSinkPtr(new FilteredSink(SinkPtr(new AsyncFileSink(1024, fileName)))));
+
+	std::vector<std::thread> threads;
+	threads.resize(NUM_THREADS);
+
+	for (size_t i = 0; i < NUM_THREADS; i++) {
+		threads[i] = std::thread(DoLog);
+	}
+
+	for (size_t i = 0; i < NUM_THREADS; i++) {
+		threads[i].join();
+	}
 }
 

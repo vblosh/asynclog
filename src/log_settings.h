@@ -18,7 +18,7 @@ public:
         return _instance;
     }
 
-    LogSettings() : sinks(new SinkComposite), reportingLevel(LogLevel::ERROR)
+    LogSettings() : sinks(new SinkComposite), reportingLevel(LogLevel::TRACE)
     {}
 
     void AddSink(const FilteredSinkPtr& os)

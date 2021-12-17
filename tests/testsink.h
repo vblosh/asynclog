@@ -9,7 +9,7 @@ class TestSink : public ISink
 	unsigned int count;
 
 public:
-	TestSink() : lastEntry(LogLevel::NONE), count(0) {}
+	TestSink() : lastEntry(0, LogLevel::NONE), count(0) {}
 	~TestSink() {}
 
 	// Inherited via ISink

@@ -28,8 +28,8 @@ struct Logdata
     std::string area;
     std::string message;
 
-    Logdata(const LogLevel& aseverity, const std::string& anarea = "")
-        : timestamp(std::time(nullptr)), severity(aseverity), area(anarea) {}
+    Logdata(Timestamp theTimestamp = Timestamp(), LogLevel aseverity = LogLevel::ERROR, const std::string& anarea = "")
+        : timestamp(theTimestamp), severity(aseverity), area(anarea) {}
 };
 
 //log sink interface

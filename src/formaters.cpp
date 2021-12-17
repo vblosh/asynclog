@@ -24,7 +24,7 @@ void LogFormatter::Format(std::ostream& buf, const Logdata& logdata)
     if (!logdata.area.empty()) {
         buf << '[' << logdata.area << "] ";
     }
-    buf << logdata.message;
+    buf << logdata.message << std::endl;
 }
 
 }
