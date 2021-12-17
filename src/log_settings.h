@@ -23,6 +23,7 @@ public:
 
     void AddSink(const FilteredSinkPtr& os)
     {
+        os->SetReportingLevel(reportingLevel);
         sinks->AddSink(os);
     }
 
@@ -39,11 +40,12 @@ public:
     void SetReportingLevel(const LogLevel& level)
     {
         reportingLevel = level;
+        sinks->SetReportingLevel(reportingLevel);
     }
 
     void Shutdown()
     {
-        sinks = nullptr;
+        sinks->Clear();
     }
 };
 

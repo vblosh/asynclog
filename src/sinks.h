@@ -22,7 +22,11 @@ public:
 
     bool Enabled(const Logdata& logdata) override;
 
+    void SetReportingLevel(LogLevel level) override;
+
     void AddSink(const FilteredSinkPtr& os);
+
+    void Clear();
 };
 
 class FilteredSink : public IFilteredSink
@@ -37,6 +41,8 @@ public:
     void Log(const Logdata& logdata) override;
 
     bool Enabled(const Logdata& logdata) override;
+
+    void SetReportingLevel(LogLevel level) override;
 };
 
 

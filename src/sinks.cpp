@@ -20,9 +20,21 @@ bool SinkComposite::Enabled(const Logdata& logdata)
     return false;
 }
 
+void SinkComposite::SetReportingLevel(LogLevel level)
+{
+    for (auto& sink : sinks) {
+        sink->SetReportingLevel(level);
+    }
+}
+
 void SinkComposite::AddSink(const FilteredSinkPtr& os)
 {
     sinks.push_back(os);
+}
+
+void SinkComposite::Clear()
+{
+    sinks.clear();
 }
 
 FilteredSink::FilteredSink(SinkPtr asink, FilterPtr afilter)
@@ -39,5 +51,11 @@ bool FilteredSink::Enabled(const Logdata& logdata)
 {
     return filter->Enabled(logdata);
 }
+
+void FilteredSink::SetReportingLevel(LogLevel level)
+{
+    filter->SetReportingLevel(level);
+}
+
 
 }

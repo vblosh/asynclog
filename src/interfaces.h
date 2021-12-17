@@ -19,27 +19,17 @@ enum class LogLevel
     NONE
 };
 
-struct Timestamp
-{
-    time_t timepoint;
-    Timestamp(time_t tm) : timepoint(tm) {}
-
-    static time_t now()
-    {
-        return std::time(nullptr);
-    }
-};
+using Timestamp = std::time_t;
 
 struct Logdata
 {
-
     Timestamp timestamp;
     LogLevel severity;
     std::string area;
     std::string message;
 
     Logdata(const LogLevel& aseverity, const std::string& anarea = "")
-        : severity(aseverity), area(anarea), timestamp(Timestamp::now()) {}
+        : timestamp(std::time(nullptr)), severity(aseverity), area(anarea) {}
 };
 
 //log sink interface
@@ -55,6 +45,7 @@ struct IFilter
 {
     virtual ~IFilter() = default;
     virtual bool Enabled(const Logdata& logdata) = 0;
+    virtual void SetReportingLevel(LogLevel level) = 0;
 };
 
 // sink with filter interface

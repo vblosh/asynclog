@@ -38,7 +38,7 @@ public:
 
     SinkFile(const std::string& filename, FormatterPtr aformatter = FormatterPtr(new LogFormatter()));
 
-    SinkFile::~SinkFile();
+    ~SinkFile();
 };
 
 }
