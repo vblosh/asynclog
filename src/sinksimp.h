@@ -17,6 +17,7 @@ class FormattedStreamSink : public ISink
 protected:
     FormatterPtr formatter;
     std::ostream* os;
+    std::mutex mutex;
 
 public:
     FormattedStreamSink(FormatterPtr aformatter);

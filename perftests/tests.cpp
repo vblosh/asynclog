@@ -13,6 +13,7 @@ using namespace std;
 using namespace asynclog;
 
 string AREA = "PERFOMANCE_TEST";
+string COUT = "COUT";
 const size_t NUM_ITER = 100;
 const size_t NUM_THREADS = 10;
 const size_t BUF_LEN = 1024;
@@ -47,12 +48,12 @@ void DoLog()
 
 	auto minmax = std::minmax_element(logtimes.begin(), logtimes.end());
 	auto meantime = mean(logtimes);
-	LOG(LogLevel::INFO, AREA) << "thread_id=" << std::setw(5) << id << " logging time: min time=" << *minmax.first
+	LOG(LogLevel::INFO, COUT) << "thread_id=" << std::setw(5) << id << " logging time: min time=" << *minmax.first
 		<< " us, max time=" << *minmax.second << " us, mean time=" << meantime << " us";
 
 	auto minmaxf = std::minmax_element(filteredtimes.begin(), filteredtimes.end());
 	auto meantimef = mean(filteredtimes);
-	LOG(LogLevel::INFO, AREA) << "thread_id=" << std::setw(5) << id << " logging time: min time=" << *minmaxf.first
+	LOG(LogLevel::INFO, COUT) << "thread_id=" << std::setw(5) << id << " logging time: min time=" << *minmaxf.first
 		<< " ns, max time=" << *minmaxf.second << " ns, mean time=" << meantimef << " ns";
 
 }
@@ -68,9 +69,17 @@ void PerfTest()
 		FilteredSinkPtr(new FilteredSink(
 			SinkPtr(new AsyncSink(BUF_LEN,
 				SinkPtr(new SinkFile(fileName)))), filter)));
+	
+	std::shared_ptr<AreaFilter> filter1(new AreaFilter);
+	filter1->SetFilter(COUT, LogLevel::INFO);
+	
+	LogSettings::Instance().AddSink(
+		FilteredSinkPtr(new FilteredSink(
+			SinkPtr(new SinkCout), filter1)));
+
 	LogSettings::Instance().SetReportingLevel(LogLevel::ERROR);
 
-	LOG(LogLevel::INFO, AREA) << "Perfomanse test started with " << NUM_THREADS << " threads"
+	LOG(LogLevel::INFO, COUT) << "Perfomanse test started with " << NUM_THREADS << " threads"
 		<< " and " << NUM_ITER << " number of iteration. Filtered ratio is set to " << FILTERED_RATIO
 		<< " and initial buffer size is " << BUF_LEN;
 

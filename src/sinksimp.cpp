@@ -10,6 +10,7 @@ FormattedStreamSink::FormattedStreamSink(FormatterPtr aformatter)
 
 void FormattedStreamSink::Log(const Logdata& logdata)
 {
+    std::lock_guard<std::mutex> lock(mutex);
     formatter->Format(*os, logdata);
 }
 
