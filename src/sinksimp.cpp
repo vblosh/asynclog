@@ -1,4 +1,5 @@
 #include "sinksimp.h"
+using namespace std::chrono_literals;
 
 namespace asynclog
 {
@@ -32,8 +33,8 @@ SinkFile::~SinkFile()
     ofs.close();
 }
 
-AsyncSink::AsyncSink(size_t bufferSize, SinkPtr asink)
-    : buffer(bufferSize), sink(asink), proceed(true), started(false)
+AsyncSink::AsyncSink(SinkPtr asink)
+    : sink(asink), proceed(true), thread_exception_ptr(nullptr)
 {
     Start();
 }
@@ -45,32 +46,19 @@ AsyncSink::~AsyncSink()
 
 void AsyncSink::Log(const Logdata& logdata)
 {
-    if (thread_exception_ptr) {
-        std::rethrow_exception(thread_exception_ptr);
-    }
-
-    std::unique_lock<std::mutex> lock(buffer_mutex);
-    buffer.push_back(logdata);
-    enqueue_condition_var.notify_one();
+    Node* node = new Node{ nullptr, logdata };
+    buffer.push(node);
 }
 
 void AsyncSink::Start()
 {
     proceed = true;
-    started = false;
     consumer = std::thread(&AsyncSink::Consume, this);
-    // wait for consumer thread
-    std::unique_lock<std::mutex> lock(started_mutex);
-    while (!started) {
-        started_condition_var.wait(lock);
-    }
 }
 
 void AsyncSink::Stop()
 {
-    using namespace std::chrono_literals;
     proceed = false;
-    enqueue_condition_var.notify_one();
     if (consumer.joinable()) {
         consumer.join();
     }
@@ -79,35 +67,17 @@ void AsyncSink::Stop()
 void AsyncSink::Consume()
 {
     Logdata next_entry;
+    Node* node;
     try {
-        { // signal start
-            std::unique_lock<std::mutex> lock(started_mutex);
-            started = true;
-            started_condition_var.notify_one();
-        }
-
-        for (;;) {
+        while (node = buffer.pop(), proceed || node != nullptr)
+        {
+            while (node != nullptr)
             {
-                std::unique_lock<std::mutex> lock(buffer_mutex);
-                while (proceed && buffer.empty()) {
-                    enqueue_condition_var.wait(lock);
-                }
-
-                if (proceed) {
-                    next_entry = std::move(buffer.front());
-                    buffer.pop_front();
-                }
-                else { // process buffer to the end 
-                    while (!buffer.empty()) {
-                        next_entry = std::move(buffer.front());
-                        buffer.pop_front();
-                        sink->Log(next_entry);
-                    }
-                    // exit thread
-                    break;
-                }
+                sink->Log(node->value);
+                delete node;
+                node = buffer.pop();
             }
-            sink->Log(next_entry);
+            std::this_thread::sleep_for(1ms);
         }
     }
     catch (...) {

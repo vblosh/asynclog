@@ -7,9 +7,20 @@
 #include "log_settings.h"
 #include "log_entry.h"
 
-// Takes 1-2 arguments, a loglevel and a log area (defaults to "" if only 1 argument is given). Do not call with more arguments, the result is an unintuitive compile error.
-#define LOG(level, ...) \
-    if (!::asynclog::LogSettings::Instance().GetSink()->Enabled(Logdata(std::time(0), level, __VA_ARGS__))) ; \
-    else ::asynclog::LogEntry(::asynclog::LogSettings::Instance().GetSink(), Logdata(std::time(nullptr), level, __VA_ARGS__)).Get()
+//#define LOG(level) \
+//    if (!::asynclog::LogSettings::Instance().GetSink()->Enabled(Logdata(std::time(0), level, ""))) ; \
+//    else ::asynclog::LogEntry(::asynclog::LogSettings::Instance().GetSink(), Logdata(std::time(nullptr), level, "")).Get()
+
+#define LOG(level, area) \
+    if (!::asynclog::LogSettings::Instance().GetSink()->Enabled(Logdata(std::time(0), level, area))) ; \
+    else ::asynclog::LogEntry(::asynclog::LogSettings::Instance().GetSink(), Logdata(std::time(nullptr), level, area)).Get()
+
+//#define SLOG(level, message) \
+//    if (!::asynclog::LogSettings::Instance().GetSink()->Enabled(Logdata(std::time(0), level, ""))) ; \
+//    else ::asynclog::LogSettings::Instance().GetSink()->Log(Logdata(std::time(nullptr), level, "", message))
+
+#define SLOG(level, area, message) \
+    if (!::asynclog::LogSettings::Instance().GetSink()->Enabled(Logdata(std::time(0), level, area))) ; \
+    else ::asynclog::LogSettings::Instance().GetSink()->Log(Logdata(std::time(nullptr), level, area, message))
 
 #endif //GUARD_LOGGING_H

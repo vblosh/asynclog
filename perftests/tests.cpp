@@ -14,9 +14,10 @@ using namespace asynclog;
 
 string AREA = "PERFOMANCE_TEST";
 string COUT = "COUT";
+string FILTERED = "FILTERED";
+
 const size_t NUM_ITER = 100;
 const size_t NUM_THREADS = 10;
-const size_t BUF_LEN = 1024;
 const size_t FILTERED_RATIO = 10;
 
 uint64_t mean(const std::vector<uint64_t>& v)
@@ -29,18 +30,21 @@ void DoLog()
 {
 	std::vector<uint64_t> logtimes(NUM_ITER);
 	std::vector<uint64_t> filteredtimes(NUM_ITER*FILTERED_RATIO);
+	char buf[256];
 
 	auto id = std::this_thread::get_id();
 	for (size_t i = 0; i < NUM_ITER; i++) {
 		auto start_time = std::chrono::high_resolution_clock::now();
-		LOG(LogLevel::INFO, AREA) << "thread_id=" << std::setw(5) << id << " iteration=" << i;
+		sprintf_s(buf, sizeof(buf), "thread_id=%5u iteration=%u", id, (unsigned int)i);
+		SLOG(LogLevel::INFO, AREA, buf);
+		//LOG(LogLevel::INFO, AREA) << "thread_id=" << id << " iteration=" << i;
 		auto stop_time = std::chrono::high_resolution_clock::now();
 		logtimes[i] = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_time - start_time).count();
 
 		for (size_t j = 0; j < FILTERED_RATIO; j++)
 		{
 			auto start_time = std::chrono::high_resolution_clock::now();
-			LOG(LogLevel::INFO) << "thread_id=" << std::setw(5) << id << " iteration=" << i;
+			LOG(LogLevel::INFO, FILTERED) << "thread_id=" << std::setw(5) << id << " iteration=" << i;
 			auto stop_time = std::chrono::high_resolution_clock::now();
 			filteredtimes[i * FILTERED_RATIO + j] = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_time - start_time).count();
 		}
@@ -70,8 +74,7 @@ void PerfTest()
 
 	LogSettings::Instance().AddSink(
 		FilteredSinkPtr(new FilteredSink(
-			SinkPtr(new AsyncSink(BUF_LEN,
-				SinkPtr(new SinkFile(fileName)))), filter)));
+			SinkPtr(new AsyncSink(SinkPtr(new SinkFile(fileName)))), filter)));
 	
 	std::shared_ptr<AreaFilter> filter1(new AreaFilter);
 	filter1->SetFilter(COUT, LogLevel::INFO);
@@ -83,8 +86,7 @@ void PerfTest()
 	LogSettings::Instance().SetReportingLevel(LogLevel::ERROR);
 
 	LOG(LogLevel::INFO, COUT) << "Perfomanse test started with " << NUM_THREADS << " threads"
-		<< " and " << NUM_ITER << " number of iteration. Filtered ratio is set to " << FILTERED_RATIO
-		<< " and initial buffer size is " << BUF_LEN;
+		<< " and " << NUM_ITER << " number of iteration. Filtered ratio is set to " << FILTERED_RATIO;
 
 	std::vector<std::thread> threads;
 	threads.resize(NUM_THREADS);

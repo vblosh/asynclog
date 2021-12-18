@@ -2,7 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include "sinks.h"
-#include "circularbuffer.h"
+#include "mpscqueue.h"
 
 #include <thread>
 #include <atomic>
@@ -50,21 +50,14 @@ public:
 
 class AsyncSink : public ISink
 {
-    circullar_buffer<Logdata> buffer;
+    std::exception_ptr thread_exception_ptr;
+    MpscQueue buffer;
     std::thread consumer;
-    std::mutex buffer_mutex;
     std::atomic<bool> proceed;
-    std::condition_variable enqueue_condition_var;
-    std::exception_ptr thread_exception_ptr = nullptr;
-    
-    bool started;
-    std::condition_variable started_condition_var;
-    std::mutex started_mutex;
-
     SinkPtr sink;
 
 public:
-    AsyncSink(size_t bufferSize, SinkPtr asink);
+    AsyncSink(SinkPtr asink);
     ~AsyncSink();
 
     void Log(const Logdata&) override;
