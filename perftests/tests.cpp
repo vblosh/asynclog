@@ -35,7 +35,7 @@ void DoLog()
 		auto start_time = std::chrono::high_resolution_clock::now();
 		LOG(LogLevel::INFO, AREA) << "thread_id=" << std::setw(5) << id << " iteration=" << i;
 		auto stop_time = std::chrono::high_resolution_clock::now();
-		logtimes[i] = std::chrono::duration_cast<std::chrono::microseconds>(stop_time - start_time).count();
+		logtimes[i] = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_time - start_time).count();
 
 		for (size_t j = 0; j < FILTERED_RATIO; j++)
 		{
@@ -48,13 +48,16 @@ void DoLog()
 
 	auto minmax = std::minmax_element(logtimes.begin(), logtimes.end());
 	auto meantime = mean(logtimes);
-	LOG(LogLevel::INFO, COUT) << "thread_id=" << std::setw(5) << id << " logging time: min time=" << *minmax.first
-		<< " us, max time=" << *minmax.second << " us, mean time=" << meantime << " us";
 
 	auto minmaxf = std::minmax_element(filteredtimes.begin(), filteredtimes.end());
 	auto meantimef = mean(filteredtimes);
-	LOG(LogLevel::INFO, COUT) << "thread_id=" << std::setw(5) << id << " logging time: min time=" << *minmaxf.first
-		<< " ns, max time=" << *minmaxf.second << " ns, mean time=" << meantimef << " ns";
+	LOG(LogLevel::INFO, COUT) << "thread_id=" << setw(5) << id << 
+		" logged time | min=" << setw(6) << fixed << setprecision(2) << double(*minmax.first)/1000 << " us | "
+		"max=" << setw(6) << fixed << setprecision(2) << double(*minmax.second)/1000 << " us | "
+		"mean=" << setw(6) << fixed << setprecision(2) << double(meantime)/1000 << " us | " <<
+		"not logged time | min= " << setw(6) << fixed << setprecision(2) << double(*minmaxf.first)/1000 << " us | "
+		"max = " << setw(6) << fixed << setprecision(2) << double(*minmaxf.second)/1000 << " us | "
+		"mean = " << setw(6) << fixed << setprecision(2) << double(meantimef)/1000 << " us | ";
 
 }
 
