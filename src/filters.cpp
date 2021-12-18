@@ -1,6 +1,6 @@
 #include "filters.h"
 
-namespace simplelogger
+namespace asynclog
 {
 
 bool AreaFilter::Enabled(const Logdata& data)

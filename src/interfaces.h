@@ -4,7 +4,7 @@
 #include <ctime>
 #include <iostream>
 
-namespace simplelogger
+namespace asynclog
 {
 
 enum class LogLevel

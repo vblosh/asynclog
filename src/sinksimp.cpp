@@ -1,6 +1,6 @@
 #include "sinksimp.h"
 
-namespace simplelogger
+namespace asynclog
 {
 	
 FormattedStreamSink::FormattedStreamSink(FormatterPtr aformatter)

@@ -2,7 +2,7 @@
 #include <vector>
 #include <assert.h>
 
-namespace simplelogger
+namespace asynclog
 {
 
 template<typename T,

@@ -1,7 +1,7 @@
 #pragma once
 #include "interfaces.h"
 
-using namespace simplelogger;
+using namespace asynclog;
 
 class TestSink : public ISink
 {

@@ -11,7 +11,7 @@
 #include "testsink.h"
 
 using namespace std;
-using namespace simplelogger;
+using namespace asynclog;
 
 class LoggerTest : public ::testing::Test {
 protected:

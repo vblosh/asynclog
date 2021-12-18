@@ -3,7 +3,7 @@
 
 #include <sstream>
 
-namespace simplelogger
+namespace asynclog
 {
 
 class LogEntry final

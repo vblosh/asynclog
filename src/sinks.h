@@ -3,7 +3,7 @@
 #include "filters.h"
 #include "formaters.h"
 
-namespace simplelogger
+namespace asynclog
 {
 
 using  FilteredSinkPtr=std::shared_ptr<IFilteredSink>;

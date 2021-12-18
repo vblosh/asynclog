@@ -2,7 +2,7 @@
 //
 #include "testsink.h"
 
-using namespace simplelogger;
+using namespace asynclog;
 
 void TestSink::Log(const Logdata& logdata)
 {

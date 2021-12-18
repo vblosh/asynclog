@@ -3,7 +3,7 @@
 #include "interfaces.h"
 #include "sinks.h"
 
-namespace simplelogger
+namespace asynclog
 {
 
 class LogSettings

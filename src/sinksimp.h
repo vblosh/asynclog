@@ -9,7 +9,7 @@
 #include <mutex>
 #include <condition_variable>
 
-namespace simplelogger
+namespace asynclog
 {
 
 class FormattedStreamSink : public ISink

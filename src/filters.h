@@ -3,7 +3,7 @@
 #include <unordered_map>
 #include <string>
 
-namespace simplelogger
+namespace asynclog
 {
 
 class AreaFilter : public IFilter

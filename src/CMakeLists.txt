@@ -4,4 +4,4 @@ set(HEADER_FILES logging.h interfaces.h sinks.h formaters.h filters.h log_settin
 set(SOURCE_FILES sinks.cpp formaters.cpp filters.cpp sinksimp.cpp)
 
 # Add source to this project's executable.
-add_library (simpleLog ${SOURCE_FILES} ${HEADER_FILES} )
+add_library (asynclog ${SOURCE_FILES} ${HEADER_FILES} )

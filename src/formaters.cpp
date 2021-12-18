@@ -4,7 +4,7 @@
 
 #include "formaters.h"
 
-namespace simplelogger 
+namespace asynclog 
 {
 std::array<std::string, 7> LogFormatter::labels{ "TRACE", "DEBUG", "INFO ", "WARN ", "ERROR", "FATAL", "NONE " };
 

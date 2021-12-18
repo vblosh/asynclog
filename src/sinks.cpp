@@ -1,6 +1,6 @@
 #include "sinks.h"
 
-namespace simplelogger
+namespace asynclog
 {
 
 void SinkComposite::Log(const Logdata& logdata)

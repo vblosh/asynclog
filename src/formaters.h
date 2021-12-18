@@ -3,7 +3,7 @@
 
 #include "interfaces.h"
 
-namespace simplelogger
+namespace asynclog
 {
 
 class LogFormatter : public IFormatter
