@@ -1,5 +1,4 @@
 #include "sinksimp.h"
-#include <chrono>
 
 namespace simplelogger
 {
@@ -32,20 +31,18 @@ SinkFile::~SinkFile()
     ofs.close();
 }
 
-AsyncFileSink::AsyncFileSink(size_t bufferSize, const std::string& filename, FormatterPtr aformatter)
-    : buffer(bufferSize), proceed(true), formatter(aformatter), started(false)
+AsyncSink::AsyncSink(size_t bufferSize, SinkPtr asink)
+    : buffer(bufferSize), sink(asink), proceed(true), started(false)
 {
-    ofs.open(filename.c_str(), std::ios::out | std::ios::trunc);
-    start();
+    Start();
 }
 
-AsyncFileSink::~AsyncFileSink()
+AsyncSink::~AsyncSink()
 {
-    stop();
-    ofs.close();
+    Stop();
 }
 
-void AsyncFileSink::Log(const Logdata& logdata)
+void AsyncSink::Log(const Logdata& logdata)
 {
     if (thread_exception_ptr) {
         std::rethrow_exception(thread_exception_ptr);
@@ -56,11 +53,11 @@ void AsyncFileSink::Log(const Logdata& logdata)
     enqueue_condition_var.notify_one();
 }
 
-void AsyncFileSink::start()
+void AsyncSink::Start()
 {
     proceed = true;
-    consumer = std::thread(&AsyncFileSink::consume, this);
-    
+    started = false;
+    consumer = std::thread(&AsyncSink::Consume, this);
     // wait for consumer thread
     std::unique_lock<std::mutex> lock(started_mutex);
     while (!started) {
@@ -68,7 +65,7 @@ void AsyncFileSink::start()
     }
 }
 
-void AsyncFileSink::stop()
+void AsyncSink::Stop()
 {
     using namespace std::chrono_literals;
     proceed = false;
@@ -78,7 +75,7 @@ void AsyncFileSink::stop()
     }
 }
 
-void AsyncFileSink::consume()
+void AsyncSink::Consume()
 {
     Logdata next_entry;
     try {
@@ -103,13 +100,13 @@ void AsyncFileSink::consume()
                     while (!buffer.empty()) {
                         next_entry = std::move(buffer.front());
                         buffer.pop_front();
-                        formatter->Format(ofs, next_entry);
+                        sink->Log(next_entry);
                     }
                     // exit thread
                     break;
                 }
             }
-            formatter->Format(ofs, next_entry);
+            sink->Log(next_entry);
         }
     }
     catch (...) {

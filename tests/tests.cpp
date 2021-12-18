@@ -130,7 +130,10 @@ TEST_F(LoggerTest, testSinkFile)
 TEST_F(LoggerTest, testAsyncSinkFile)
 {
 	char* fileName = "test1.log";
-	LogSettings::Instance().AddSink(FilteredSinkPtr(new FilteredSink(SinkPtr(new AsyncFileSink(1, fileName)))));
+	LogSettings::Instance().AddSink(
+		FilteredSinkPtr(new FilteredSink(
+			SinkPtr(new AsyncSink(1, 
+				SinkPtr(new SinkFile(fileName)))))));
 
 	for (size_t i = 0; i < 20; i++) {
 		LOG(LogLevel::ERROR, area) << i;
@@ -151,7 +154,10 @@ TEST_F(LoggerTest, testAsyncSinkFileMultithreaded)
 	const size_t NUM_THREADS = 8;
 	char* fileName = "test2.log";
 
-	LogSettings::Instance().AddSink(FilteredSinkPtr(new FilteredSink(SinkPtr(new AsyncFileSink(1024, fileName)))));
+	LogSettings::Instance().AddSink(
+		FilteredSinkPtr(new FilteredSink(
+			SinkPtr(new AsyncSink(1024, 
+				SinkPtr(new SinkFile(fileName)))))));
 
 	std::vector<std::thread> threads;
 	threads.resize(NUM_THREADS);

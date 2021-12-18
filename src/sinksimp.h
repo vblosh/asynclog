@@ -47,7 +47,7 @@ public:
     ~SinkFile();
 };
 
-class AsyncFileSink : public ISink
+class AsyncSink : public ISink
 {
     circullar_buffer<Logdata> buffer;
     std::thread consumer;
@@ -55,23 +55,23 @@ class AsyncFileSink : public ISink
     std::atomic<bool> proceed;
     std::condition_variable enqueue_condition_var;
     std::exception_ptr thread_exception_ptr = nullptr;
-    FormatterPtr formatter;
-    std::ofstream ofs;
-
+    
     bool started;
     std::condition_variable started_condition_var;
     std::mutex started_mutex;
 
+    SinkPtr sink;
+
 public:
-    AsyncFileSink(size_t bufferSize, const std::string& filename, FormatterPtr aformatter = FormatterPtr(new LogFormatter()));
-    ~AsyncFileSink();
+    AsyncSink(size_t bufferSize, SinkPtr asink);
+    ~AsyncSink();
 
     void Log(const Logdata&) override;
 
 private:
-    void start();
-    void stop();
-    void consume();
+    void Start();
+    void Stop();
+    void Consume();
 };
 
 }
