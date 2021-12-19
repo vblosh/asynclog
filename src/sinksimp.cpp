@@ -46,7 +46,9 @@ AsyncSink::~AsyncSink()
 
 void AsyncSink::Log(const Logdata& logdata)
 {
-    Node* node = new Node{ nullptr, logdata };
+    Node* node = new Node;
+    node->next.store(nullptr);
+    node->value = logdata;
     buffer.push(node);
 }
 

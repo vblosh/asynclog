@@ -35,7 +35,7 @@ void DoLog()
 	auto id = std::this_thread::get_id();
 	for (size_t i = 0; i < NUM_ITER; i++) {
 		auto start_time = std::chrono::high_resolution_clock::now();
-		sprintf_s(buf, sizeof(buf), "thread_id=%5u iteration=%u", id, (unsigned int)i);
+		sprintf(buf, "thread_id=%5u iteration=%u", id, (unsigned int)i);
 		SLOG(LogLevel::INFO, AREA, buf);
 		//LOG(LogLevel::INFO, AREA) << "thread_id=" << id << " iteration=" << i;
 		auto stop_time = std::chrono::high_resolution_clock::now();
@@ -67,7 +67,7 @@ void DoLog()
 
 void PerfTest()
 {
-	char* fileName = "perftest.log";
+	const char* fileName = "perftest.log";
 	
 	std::shared_ptr<AreaFilter> filter(new AreaFilter);
 	filter->SetFilter(AREA, LogLevel::INFO);

@@ -2,6 +2,8 @@
 
 #include "filters.h"
 #include "formaters.h"
+#include <memory>
+#include <vector>
 
 namespace asynclog
 {
