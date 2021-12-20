@@ -23,12 +23,14 @@ public:
     FormattedStreamSink(FormatterPtr aformatter);
 
     void Log(const Logdata& logdata) override;
+    void Log(Logdata&& logdata) override;
 };
 
 // Discards all log messages
 struct SinkNull : public ISink
 {
     void Log(const Logdata&) override {}
+    void Log(Logdata&& logdata) override {}
 };
 
 class SinkCout : public FormattedStreamSink
@@ -61,6 +63,7 @@ public:
     ~AsyncSink();
 
     void Log(const Logdata&) override;
+    void Log(Logdata&& logdata) override;
 
 private:
     void Start();

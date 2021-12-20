@@ -12,7 +12,7 @@ class AreaFilter : public IFilter
     LogLevel logLevel;
 
 public:
-    AreaFilter() : logLevel(LogLevel::NONE) {}
+    AreaFilter() : logLevel(LogLevel::TRACE) {}
     bool Enabled(const Logdata& data) override;
     void SetReportingLevel(LogLevel level) override;
     void SetFilter(const std::string& area, LogLevel level);

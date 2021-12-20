@@ -9,11 +9,12 @@ class TestSink : public ISink
 	unsigned int count;
 
 public:
-	TestSink() : lastEntry(0, LogLevel::NONE), count(0) {}
+	TestSink() : lastEntry(LogLevel::NONE, std::string(), std::string()), count(0) {}
 	~TestSink() {}
 
 	// Inherited via ISink
-	virtual void Log(const Logdata& logdata) override;
+	void Log(const Logdata& logdata) override;
+	void Log(Logdata&& logdata) override;
 
 	const Logdata& LastEntry() const { return lastEntry; }
 	unsigned int Count() const { return count; }

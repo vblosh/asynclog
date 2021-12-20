@@ -21,17 +21,33 @@ enum class LogLevel
 
 using Timestamp = std::time_t;
 
+
 struct Logdata
 {
     Timestamp timestamp;
-    LogLevel severity;
+    LogLevel level;
     std::string area;
     std::string message;
 
-    Logdata() : timestamp(0), severity(LogLevel::ERROR) {}
+    Logdata() : timestamp(0), level(LogLevel::ERROR) {}
 
-    Logdata(Timestamp theTimestamp, LogLevel aseverity, const std::string& anarea = std::string(), const std::string& amessage = std::string())
-        : timestamp(theTimestamp), severity(aseverity), area(anarea), message(amessage) {}
+    Logdata(LogLevel aseverity) : timestamp(std::time(nullptr)), level(aseverity) {}
+    
+    Logdata(LogLevel aseverity, const std::string& anarea) : timestamp(std::time(nullptr)), level(aseverity), area(anarea) {}
+   
+    Logdata(LogLevel aseverity, const std::string anarea, const std::string amessage)
+        : timestamp(std::time(nullptr)), level(aseverity), area(anarea), message(amessage) {}
+
+    Logdata(const std::string anarea, const std::string amessage, LogLevel aseverity)
+        : timestamp(std::time(nullptr)), level(aseverity), area(anarea), message(amessage) {}
+
+    Logdata(const std::string amessage, LogLevel aseverity)
+        : timestamp(std::time(nullptr)), level(aseverity), message(amessage) {}
+
+    Logdata(Logdata&& other) = default;
+    Logdata& operator=(Logdata&& other) = default;
+    
+    Logdata& operator=(const Logdata& other) = default;
 };
 
 //log sink interface
@@ -39,6 +55,7 @@ struct ISink
 {
     virtual ~ISink() = default;
     virtual void Log(const Logdata& logdata) = 0;
+    virtual void Log(Logdata&& logdata) = 0;
 };
 
 // sink filter interface

@@ -16,7 +16,7 @@ string AREA = "PERFOMANCE_TEST";
 string COUT = "COUT";
 string FILTERED = "FILTERED";
 
-const size_t NUM_ITER = 100;
+const size_t NUM_ITER = 1000;
 const size_t NUM_THREADS = 10;
 const size_t FILTERED_RATIO = 10;
 
@@ -34,10 +34,11 @@ void DoLog()
 
 	auto id = std::this_thread::get_id();
 	for (size_t i = 0; i < NUM_ITER; i++) {
-		auto start_time = std::chrono::high_resolution_clock::now();
 		sprintf(buf, "thread_id=%5u iteration=%u", id, (unsigned int)i);
-		SLOG(LogLevel::INFO, AREA, buf);
-		//LOG(LogLevel::INFO, AREA) << "thread_id=" << id << " iteration=" << i;
+		std::string message(buf);
+		auto start_time = std::chrono::high_resolution_clock::now();
+		//SLOG(LogLevel::INFO, AREA, message);
+		LOG(LogLevel::INFO, AREA) << "thread_id=" << id << " iteration=" << i;
 		auto stop_time = std::chrono::high_resolution_clock::now();
 		logtimes[i] = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_time - start_time).count();
 
@@ -72,18 +73,18 @@ void PerfTest()
 	std::shared_ptr<AreaFilter> filter(new AreaFilter);
 	filter->SetFilter(AREA, LogLevel::INFO);
 
-	LogSettings::Instance().AddSink(
+	Logger::Instance().AddSink(
 		FilteredSinkPtr(new FilteredSink(
 			SinkPtr(new AsyncSink(SinkPtr(new SinkFile(fileName)))), filter)));
 	
 	std::shared_ptr<AreaFilter> filter1(new AreaFilter);
 	filter1->SetFilter(COUT, LogLevel::INFO);
 	
-	LogSettings::Instance().AddSink(
+	Logger::Instance().AddSink(
 		FilteredSinkPtr(new FilteredSink(
 			SinkPtr(new SinkCout), filter1)));
 
-	LogSettings::Instance().SetReportingLevel(LogLevel::ERROR);
+	Logger::Instance().SetReportingLevel(LogLevel::ERROR);
 
 	LOG(LogLevel::INFO, COUT) << "Perfomanse test started with " << NUM_THREADS << " threads"
 		<< " and " << NUM_ITER << " number of iteration. Filtered ratio is set to " << FILTERED_RATIO;
@@ -99,7 +100,7 @@ void PerfTest()
 		threads[i].join();
 	}
 
-	LogSettings::Instance().Shutdown();
+	Logger::Instance().Shutdown();
 }
 
 int main(int argc, char** argv)

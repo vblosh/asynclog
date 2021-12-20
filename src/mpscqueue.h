@@ -30,7 +30,7 @@ public:
 
     if (next != nullptr) {
       head.store(next, memory_order_relaxed);
-      head_copy->value = next->value;
+      head_copy->value = std::move(next->value);
       return head_copy;
     }
     return nullptr;

@@ -15,6 +15,12 @@ void FormattedStreamSink::Log(const Logdata& logdata)
     formatter->Format(*os, logdata);
 }
 
+void FormattedStreamSink::Log(Logdata&& logdata)
+{
+    std::lock_guard<std::mutex> lock(mutex);
+    formatter->Format(*os, logdata);
+}
+
 SinkCout::SinkCout(FormatterPtr aformatter)
     : FormattedStreamSink(aformatter)
 {
@@ -49,6 +55,14 @@ void AsyncSink::Log(const Logdata& logdata)
     Node* node = new Node;
     node->next.store(nullptr);
     node->value = logdata;
+    buffer.push(node);
+}
+
+void AsyncSink::Log(Logdata&& logdata)
+{
+    Node* node = new Node;
+    node->next.store(nullptr);
+    node->value = std::move(logdata);
     buffer.push(node);
 }
 

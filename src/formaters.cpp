@@ -20,7 +20,7 @@ void LogFormatter::Format(std::ostream& buf, const Logdata& logdata)
 #endif
 
     buf << std::put_time(&tm, timeformat.c_str()) << ' ';
-    buf << labels[(unsigned char)logdata.severity] << " : ";
+    buf << labels[(unsigned char)logdata.level] << " : ";
     if (!logdata.area.empty()) {
         buf << '[' << logdata.area << "] ";
     }

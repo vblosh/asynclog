@@ -1,5 +1,6 @@
 #pragma once
 #include "interfaces.h"
+#include "logger.h"
 
 #include <sstream>
 
@@ -8,17 +9,17 @@ namespace asynclog
 
 class LogEntry final
 {
-    ISink* pSink;
+    Logger& log;
     std::ostringstream bufStream;
     Logdata logData;
 
 public:
-    LogEntry(ISink* pSink, Logdata&& logdata) : pSink(pSink), logData(std::forward<Logdata>(logdata)) {}
+    LogEntry(Logger& alog, Logdata&& logdata) : log(alog), logData(std::move(logdata)) {}
 
     ~LogEntry()
     {
         logData.message = bufStream.str();
-        pSink->Log(logData);
+        log.Log(std::move(logData));
     }
 
     std::ostream& Get()
