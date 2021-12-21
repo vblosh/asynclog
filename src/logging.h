@@ -21,6 +21,7 @@
 
 #define LOG(level, ...) \
 if (level < LOG_MAX_LEVEL) ;\
+else if( !::asynclog::Logger::Instance().Enabled(level, __VA_ARGS__) ) ; \
 else ::asynclog::LogEntry(::asynclog::Logger::Instance(), Logdata(level, __VA_ARGS__)).Get()
 
 #define SLOG(level, ...) \

@@ -25,7 +25,7 @@ public:
     void Log(const Logdata& logdata) override;
     virtual void Log(Logdata&& logdata) override;
 
-    bool Enabled(const Logdata& logdata) override;
+    bool Enabled(LogLevel level, const std::string& area) override;
 
     void SetReportingLevel(LogLevel level) override;
 

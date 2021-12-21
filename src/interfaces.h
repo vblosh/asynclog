@@ -44,10 +44,32 @@ struct Logdata
     Logdata(const std::string amessage, LogLevel aseverity)
         : timestamp(std::time(nullptr)), level(aseverity), message(amessage) {}
 
-    Logdata(Logdata&& other) = default;
-    Logdata& operator=(Logdata&& other) = default;
+    Logdata(const Logdata& other)
+        : timestamp(other.timestamp), level(other.level), area(other.area), message(other.message) {}
+
+    Logdata& operator=(const Logdata& other) {
+        if (&other != this) {
+            timestamp = other.timestamp;
+            level = other.level;
+            area = other.area;
+            message = other.message;
+        }
+        return *this;
+    }
+
+    Logdata(Logdata&& other)
+        : timestamp(other.timestamp), level(other.level), area(std::move(other.area)), message(std::move(other.message)) {}
+
+    Logdata& operator=(Logdata&& other) {
+        if (&other != this) {
+            timestamp = other.timestamp;
+            level = other.level;
+            area = std::move(other.area);
+            message = std::move(other.message);
+        }
+        return *this;
+    }
     
-    Logdata& operator=(const Logdata& other) = default;
 };
 
 //log sink interface
@@ -63,7 +85,7 @@ struct ISink
 struct IFilter
 {
     virtual ~IFilter() = default;
-    virtual bool Enabled(const Logdata& logdata) = 0;
+    virtual bool Enabled(LogLevel level, const std::string& area) = 0;
     virtual void SetReportingLevel(LogLevel level) = 0;
 };
 

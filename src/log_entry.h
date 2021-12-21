@@ -14,7 +14,8 @@ class LogEntry final
     Logdata logData;
 
 public:
-    LogEntry(Logger& alog, Logdata&& logdata) : log(alog), logData(std::move(logdata)) {}
+    LogEntry(Logger& alog, Logdata&& logdata) : log(alog), logData(std::move(logdata)) 
+    {}
 
     ~LogEntry()
     {

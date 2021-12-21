@@ -52,18 +52,16 @@ AsyncSink::~AsyncSink()
 
 void AsyncSink::Log(const Logdata& logdata)
 {
-    Node* node = new Node;
-    node->next.store(nullptr);
+    Node* node = logQueue.CreateNode();
     node->value = logdata;
-    buffer.push(node);
+    logQueue.push(node);
 }
 
 void AsyncSink::Log(Logdata&& logdata)
 {
-    Node* node = new Node;
-    node->next.store(nullptr);
+    Node* node = logQueue.CreateNode();
     node->value = std::move(logdata);
-    buffer.push(node);
+    logQueue.push(node);
 }
 
 void AsyncSink::Start()
@@ -85,13 +83,13 @@ void AsyncSink::Consume()
     Logdata next_entry;
     Node* node;
     try {
-        while (node = buffer.pop(), proceed || node != nullptr)
+        while (node = logQueue.pop(), proceed || node != nullptr)
         {
             while (node != nullptr)
             {
                 sink->Log(node->value);
-                delete node;
-                node = buffer.pop();
+                logQueue.DeleteNode(node);
+                node = logQueue.pop();
             }
             std::this_thread::sleep_for(1ms);
         }

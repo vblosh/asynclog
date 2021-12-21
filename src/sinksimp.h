@@ -53,7 +53,7 @@ public:
 class AsyncSink : public ISink
 {
     std::exception_ptr thread_exception_ptr;
-    MpscQueue buffer;
+    MpscQueue logQueue;
     std::thread consumer;
     std::atomic<bool> proceed;
     SinkPtr sink;
