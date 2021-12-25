@@ -39,8 +39,8 @@ SinkFile::~SinkFile()
     ofs.close();
 }
 
-AsyncSink::AsyncSink(SinkPtr asink)
-    : sink(asink), proceed(true), thread_exception_ptr(nullptr)
+AsyncSink::AsyncSink(SinkPtr asink, size_t queueSize)
+    : sink(asink), logQueue(queueSize), proceed(true), thread_exception_ptr(nullptr)
 {
     Start();
 }

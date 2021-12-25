@@ -171,7 +171,7 @@ TEST_F(LoggerTest, testFilter)
 
 TEST_F(LoggerTest, testSinkFile)
 {
-	char* fileName = "test.log";
+	const char* fileName = "test.log";
 	Logger::Instance().AddSink(FilteredSinkPtr(new FilteredSink(SinkPtr(new SinkCout))));
 	Logger::Instance().AddSink(FilteredSinkPtr(new FilteredSink(SinkPtr(new SinkFile(fileName)))));
 	LOG(LogLevel::ERROR, area) << message;
@@ -179,7 +179,7 @@ TEST_F(LoggerTest, testSinkFile)
 
 TEST_F(LoggerTest, testAsyncSinkFile)
 {
-	char* fileName = "test1.log";
+	const char* fileName = "test1.log";
 	Logger::Instance().AddSink(
 		FilteredSinkPtr(new FilteredSink(
 			SinkPtr(new AsyncSink(SinkPtr(new SinkFile(fileName)))))));
@@ -201,7 +201,7 @@ void DoLog()
 TEST_F(LoggerTest, testAsyncSinkFileMultithreaded)
 {
 	const size_t NUM_THREADS = 8;
-	char* fileName = "test2.log";
+	const char* fileName = "test2.log";
 
 	Logger::Instance().AddSink(
 		FilteredSinkPtr(new FilteredSink(

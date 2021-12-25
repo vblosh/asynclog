@@ -59,7 +59,7 @@ class AsyncSink : public ISink
     SinkPtr sink;
 
 public:
-    AsyncSink(SinkPtr asink);
+    AsyncSink(SinkPtr asink, size_t queueSize = 1024*10);
     ~AsyncSink();
 
     void Log(const Logdata&) override;
