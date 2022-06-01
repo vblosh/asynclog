@@ -151,19 +151,16 @@ TEST_F(LoggerTest, testFilter)
 	LOG(LogLevel::INFO, area) << message;
 	ASSERT_EQ(2, testSink->Count());
 
+	Logger::Instance().SetReportingLevel(LogLevel::ERROR);
 	// LogLevel is less than FilterReportingLevel, message not logged
-	//LOG(LogLevel::WARNING) << message;
-	//ASSERT_EQ(2, testSink->Count());
+	LOG(LogLevel::WARNING, area) << message;
+	ASSERT_EQ(2, testSink->Count());
 
 	// LogLevel is equal to FilterReportingLevel, message logged
-	//LOG(LogLevel::ERROR) << message;
-	//ASSERT_EQ(3, testSink->Count());
+	LOG(LogLevel::ERROR, area) << message;
+	ASSERT_EQ(3, testSink->Count());
 
 	Logger::Instance().SetReportingLevel(LogLevel::NONE);
-	// Set global ReportingLevel to NONE nothing is logged
-	//LOG(LogLevel::FATAL) << message;
-	//ASSERT_EQ(3, testSink->Count());
-
 	// Set global ReportingLevel to NONE nothing is logged
 	LOG(LogLevel::FATAL, area) << message;
 	ASSERT_EQ(3, testSink->Count());
