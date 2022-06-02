@@ -53,16 +53,16 @@ TEST_F(LoggerTest, testLOG)
 	ASSERT_EQ(area, testSink->LastEntry().area);
 	ASSERT_EQ(message, testSink->LastEntry().message);
 
-	//before = std::time(nullptr);
-	//LOG(LogLevel::ERROR) << message;
-	//after = std::time(nullptr);
+	before = std::time(nullptr);
+	LOG(LogLevel::ERROR) << message;
+	after = std::time(nullptr);
 
-	//ASSERT_EQ(2, testSink->Count());
-	//ASSERT_GE(std::difftime(after, before), std::difftime(testSink->LastEntry().timestamp, before));
-	//ASSERT_EQ(LogLevel::ERROR, testSink->LastEntry().level);
-	//string empty;
-	//ASSERT_EQ(empty, testSink->LastEntry().area);
-	//ASSERT_EQ(message, testSink->LastEntry().message);
+	ASSERT_EQ(2, testSink->Count());
+	ASSERT_GE(std::difftime(after, before), std::difftime(testSink->LastEntry().timestamp, before));
+	ASSERT_EQ(LogLevel::ERROR, testSink->LastEntry().level);
+	string empty;
+	ASSERT_EQ(empty, testSink->LastEntry().area);
+	ASSERT_EQ(message, testSink->LastEntry().message);
 }
 
 TEST_F(LoggerTest, testSLOG)
@@ -153,16 +153,16 @@ TEST_F(LoggerTest, testFilter)
 
 	Logger::Instance().SetReportingLevel(LogLevel::ERROR);
 	// LogLevel is less than FilterReportingLevel, message not logged
-	LOG(LogLevel::WARNING, area) << message;
+	LOG(LogLevel::WARNING) << message;
 	ASSERT_EQ(2, testSink->Count());
 
 	// LogLevel is equal to FilterReportingLevel, message logged
-	LOG(LogLevel::ERROR, area) << message;
+	LOG(LogLevel::ERROR) << message;
 	ASSERT_EQ(3, testSink->Count());
 
 	Logger::Instance().SetReportingLevel(LogLevel::NONE);
 	// Set global ReportingLevel to NONE nothing is logged
-	LOG(LogLevel::FATAL, area) << message;
+	LOG(LogLevel::FATAL) << message;
 	ASSERT_EQ(3, testSink->Count());
 }
 

@@ -7,14 +7,18 @@ void Logger::AddSink(const FilteredSinkPtr& os)
     sinks.push_back(os);
 }
 
-bool Logger::Enabled(LogLevel level, const std::string& area) const
+bool Logger::Enabled(const LogLevel level) const
 {
-    if (level < reportingLevel || sinks.empty())
-        return false;
+    return !(level < reportingLevel || sinks.empty());
+}
 
-    for (size_t i = 0; i < sinks.size(); ++i) {
-        if (sinks[i]->Enabled(level, area)) {
-            return true;
+bool Logger::Enabled(const LogLevel level, const std::string& area) const
+{
+    if (Enabled(level)) {
+        for (size_t i = 0; i < sinks.size(); ++i) {
+            if (sinks[i]->Enabled(level, area)) {
+                return true;
+            }
         }
     }
     return false;

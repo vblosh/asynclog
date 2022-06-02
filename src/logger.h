@@ -23,7 +23,9 @@ public:
 
     void AddSink(const FilteredSinkPtr& os);
 
-    bool Enabled(LogLevel level, const std::string& area) const;
+    bool Enabled(const LogLevel level) const;
+
+    bool Enabled(const LogLevel level, const std::string& area) const;
 
     void Log(Logdata&& logdata);
 
