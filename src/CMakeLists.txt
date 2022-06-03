@@ -1,9 +1,9 @@
 cmake_minimum_required (VERSION 3.10)
 
 if(MSVC)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++14")
 else(MSVC)
-set_target_properties(${TARGET_NAME} PROPERTIES CXX_STANDARD 17)
+set_target_properties(${TARGET_NAME} PROPERTIES CXX_STANDARD 14)
 endif(MSVC)
 
 set(HEADER_FILES logging.h interfaces.h logger.h log_entry.h sinks.h formaters.h filters.h sinksimp.h mpscqueue.h)
