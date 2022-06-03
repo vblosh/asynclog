@@ -9,5 +9,5 @@ project ("asynclog" VERSION 0.1)
 add_subdirectory ("src")
 add_subdirectory ("tests")
 add_subdirectory ("perftests")
-add_subdirectory ("perfcompare")
+# add_subdirectory ("perfcompare")
 

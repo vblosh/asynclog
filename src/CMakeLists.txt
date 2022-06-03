@@ -6,7 +6,7 @@ else(MSVC)
 set_target_properties(${TARGET_NAME} PROPERTIES CXX_STANDARD 14)
 endif(MSVC)
 
-set(HEADER_FILES logging.h interfaces.h logger.h log_entry.h sinks.h formaters.h filters.h sinksimp.h mpscqueue.h)
+set(HEADER_FILES logging.h interfaces.h logger.h log_entry.h sinks.h formaters.h filters.h sinksimp.h mpscqueue.h spinlock.h)
 set(SOURCE_FILES sinks.cpp formaters.cpp logger.cpp filters.cpp sinksimp.cpp)
 
 # Add source to this project's executable.
