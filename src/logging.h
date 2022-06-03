@@ -1,11 +1,9 @@
 #ifndef GUARD_LOGGING_H
 #define GUARD_LOGGING_H
 
-#include "interfaces.h"
-#include "formaters.h"
-#include "sinks.h"
-#include "logger.h"
+#include "logdata.h"
 #include "log_entry.h"
+#include "logger.h"
 
 #ifndef LOG_MAX_LEVEL
 #ifdef NDEBUG

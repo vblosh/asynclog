@@ -1,6 +1,7 @@
 #pragma once
 #include "interfaces.h"
 #include "logger.h"
+#include "logdata.h"
 
 #include <sstream>
 
