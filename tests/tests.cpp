@@ -16,6 +16,7 @@ protected:
 	string message = "Hello, world!";
 
 	void SetUp() override {
+		Logger::Instance().SetReportingLevel(LogLevel::TRACE);
 	}
 
 	void TearDown() override {
@@ -179,9 +180,9 @@ TEST_F(LoggerTest, testAsyncSinkFile)
 	const char* fileName = "test1.log";
 	Logger::Instance().AddSink(
 		FilteredSinkPtr(new FilteredSink(
-			SinkPtr(new AsyncSink(SinkPtr(new SinkFile(fileName)))))));
+			SinkPtr(new AsyncSink(SinkPtr(new SinkFile(fileName)), 2)))));
 
-	for (size_t i = 0; i < 20; i++) {
+	for (size_t i = 0; i < 100; i++) {
 		LOG(LogLevel::ERROR, area) << i;
 	}
 }
@@ -197,6 +198,8 @@ void DoLog()
 
 TEST_F(LoggerTest, testAsyncSinkFileMultithreaded)
 {
+	Logger::Instance().SetReportingLevel(LogLevel::TRACE);
+
 	const size_t NUM_THREADS = 8;
 	const char* fileName = "test2.log";
 

@@ -52,15 +52,13 @@ AsyncSink::~AsyncSink()
 
 void AsyncSink::Log(const Logdata& logdata)
 {
-    Node* node = logQueue.CreateNode();
-    node->value = logdata;
+    Node* node = logQueue.CreateNode(Node(logdata));
     logQueue.push(node);
 }
 
 void AsyncSink::Log(Logdata&& logdata)
 {
-    Node* node = logQueue.CreateNode();
-    node->value = std::move(logdata);
+    Node* node = logQueue.CreateNode(Node(std::move(logdata)));
     logQueue.push(node);
 }
 

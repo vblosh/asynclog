@@ -4,63 +4,10 @@
 #include <stdexcept>
 #include "logging.h"
 #include "spinlock.h"
+#include "node.h"
 
 namespace asynclog
 {
-
-struct Node {
-	std::atomic<Node*> next;
-	Logdata value;
-
-	Node() : next(nullptr) {}
-
-	Node(Node&&) = default;
-	Node& operator=(Node&&) = default;
-
-	Node(const Node& other) {
-		next.store(other.next);
-		value = other.value;
-	}
-	Node& operator=(const Node&) = delete;
-};
-
-class NodeAllocator
-{
-	std::vector<Node> data;
-	size_t current;
-	Node* freeTail;		// tail of free queue of deallocated nodes
-	spinlock allocLock;
-public:
-	NodeAllocator(size_t capacity) : current(0), freeTail(nullptr) {
-		data.resize(capacity);
-	}
-
-	~NodeAllocator() {
-	}
-
-	Node* Allocate() {
-		std::lock_guard<spinlock> lock(allocLock);
-		Node* ret;
-		if (freeTail) { // there are deallocated nodes in free queue
-			ret = freeTail;
-			freeTail = freeTail->next;
-		}
-		else { // there are no deallocated nodes in free queue
-			ret = &data[current++];
-			// TODO: expand data
-			if (current == data.size())
-				throw std::runtime_error("overflow");
-		}
-
-		return ret;
-	}
-
-	void Deallocate(Node* node) {
-		std::lock_guard<spinlock> lock(allocLock);
-		node->next = freeTail;
-		freeTail = node;
-	}
-};
 
 class MpscQueue {
 	NodeAllocator alloc;
@@ -68,16 +15,17 @@ class MpscQueue {
 	std::atomic<Node*> head;
 	std::atomic<Node*> tail;
 public:
-	MpscQueue(size_t capacity) : alloc(capacity), stub(CreateNode()), head(stub), tail(stub) {
+	MpscQueue(size_t capacity) : alloc(capacity), stub(CreateNode(Node(Logdata()))), head(stub), tail(stub) {
 		stub->next.store(nullptr);
 	}
 
-	Node* CreateNode() {
-		return alloc.Allocate();
+	template<typename T>
+	Node* CreateNode(T&& node) {
+		return alloc.allocate(std::forward<T>(node));
 	}
 
 	void DeleteNode(Node* node) {
-		alloc.Deallocate(node);
+		alloc.deallocate(node);
 	}
 
 	void push(Node* node) {
