@@ -40,7 +40,8 @@ SinkFile::~SinkFile()
 }
 
 AsyncSink::AsyncSink(SinkPtr asink, size_t queueSize)
-    : sink(asink), logQueue(queueSize), proceed(true), thread_exception_ptr(nullptr)
+    : sink(asink), allocator(queueSize), logQueue(allocator.allocate(Node(Logdata())))
+    , proceed(true), thread_exception_ptr(nullptr)
 {
     Start();
 }
@@ -52,13 +53,13 @@ AsyncSink::~AsyncSink()
 
 void AsyncSink::Log(const Logdata& logdata)
 {
-    Node* node = logQueue.CreateNode(Node(logdata));
+    Node* node = allocator.allocate(Node(logdata));
     logQueue.push(node);
 }
 
 void AsyncSink::Log(Logdata&& logdata)
 {
-    Node* node = logQueue.CreateNode(Node(std::move(logdata)));
+    Node* node = allocator.allocate(Node(std::move(logdata)));
     logQueue.push(node);
 }
 
@@ -86,10 +87,10 @@ void AsyncSink::Consume()
             while (node != nullptr)
             {
                 sink->Log(node->value);
-                logQueue.DeleteNode(node);
+                allocator.deallocate(node);
                 node = logQueue.pop();
             }
-            std::this_thread::sleep_for(1ms);
+            std::this_thread::sleep_for(10ms);
         }
     }
     catch (...) {

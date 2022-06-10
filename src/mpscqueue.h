@@ -10,22 +10,12 @@ namespace asynclog
 {
 
 class MpscQueue {
-	NodeAllocator alloc;
 	Node* stub;
 	std::atomic<Node*> head;
 	std::atomic<Node*> tail;
 public:
-	MpscQueue(size_t capacity) : alloc(capacity), stub(CreateNode(Node(Logdata()))), head(stub), tail(stub) {
+	MpscQueue(Node* astub) : stub(astub), head(stub), tail(stub) {
 		stub->next.store(nullptr);
-	}
-
-	template<typename T>
-	Node* CreateNode(T&& node) {
-		return alloc.allocate(std::forward<T>(node));
-	}
-
-	void DeleteNode(Node* node) {
-		alloc.deallocate(node);
 	}
 
 	void push(Node* node) {

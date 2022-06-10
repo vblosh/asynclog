@@ -73,6 +73,11 @@ namespace asynclog
 			node->next = freeTail;
 			freeTail = node;
 		}
+
+		void truncateBuffer() {
+			std::lock_guard<spinlock> lock(allocLock);
+			data.resize(1);
+		}
 	};
 
 }

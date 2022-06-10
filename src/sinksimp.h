@@ -1,13 +1,14 @@
 #pragma once
 #include <iostream>
 #include <fstream>
-#include "sinks.h"
-#include "mpscqueue.h"
-
 #include <thread>
 #include <atomic>
 #include <mutex>
 #include <condition_variable>
+
+#include "sinks.h"
+#include "mpscqueue.h"
+#include "node.h"
 
 namespace asynclog
 {
@@ -53,6 +54,7 @@ public:
 class AsyncSink : public ISink
 {
     std::exception_ptr thread_exception_ptr;
+    NodeAllocator allocator;
     MpscQueue logQueue;
     std::thread consumer;
     std::atomic<bool> proceed;
