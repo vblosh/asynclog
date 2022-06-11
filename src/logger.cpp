@@ -14,18 +14,16 @@ bool Logger::Enabled(const LogLevel level) const
 
 bool Logger::Enabled(const LogLevel level, const std::string& area) const
 {
-    if (Enabled(level)) {
-        for (size_t i = 0; i < sinks.size(); ++i) {
-            if (sinks[i]->Enabled(level, area)) {
-                return true;
-            }
+    for (size_t i = 0; i < sinks.size(); ++i) {
+        if (sinks[i]->Enabled(level, area)) {
+            return true;
         }
     }
-    return false;
+    return Enabled(level);
 }
 
 void Logger::Log(Logdata&& logdata) {
-    if (logdata.level < reportingLevel || sinks.empty())
+    if (sinks.empty())
         return;
 
     for (size_t i = 1; i < sinks.size(); ++i) {
@@ -47,6 +45,9 @@ LogLevel Logger::ReportingLevel() const
 void Logger::SetReportingLevel(LogLevel level)
 {
     reportingLevel = level;
+    for (size_t i = 0; i < sinks.size(); ++i) {
+        sinks[i]->SetReportingLevel(level);
+    }
 }
 
 void Logger::Shutdown()
