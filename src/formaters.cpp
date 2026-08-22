@@ -6,17 +6,15 @@
 
 namespace asynclog 
 {
-std::array<std::string, 7> LogFormatter::labels{ "TRACE", "DEBUG", "INFO ", "WARN ", "ERROR", "FATAL", "NONE " };
+std::array<std::string, 8> LogFormatter::labels{ "TRACE", "DEBUG", "INFO ", "NOTICE", "WARN ", "ERROR", "FATAL", "NONE " };
 
 void LogFormatter::Format(std::ostream& buf, const Logdata& logdata)
 {
     std::tm tm;
-#if defined(__unix__)
-    localtime_r(&logdata.timestamp, &tm);
-#elif defined(_MSC_VER)
+#if defined(_MSC_VER)
     localtime_s(&tm, &logdata.timestamp);
 #else
-    tm = *std::localtime(&timer);
+    localtime_r(&logdata.timestamp, &tm);
 #endif
 
     buf << std::put_time(&tm, timeformat.c_str()) << ' ';

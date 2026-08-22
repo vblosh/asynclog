@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
+#include <iomanip>
 #include <gtest/gtest.h>
 
 #include "logging.h"
