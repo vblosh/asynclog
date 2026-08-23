@@ -54,7 +54,7 @@ jobs:
         TSAN_OPTIONS: halt_on_error=1
         UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
       run: |
-        ctest --output-on-failure
+        ./tests/runUnitTests
     
     - name: Run perfcompare
       working-directory: ${{github.workspace}}/build
