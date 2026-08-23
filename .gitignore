@@ -1,3 +1,4 @@
 ﻿/.vs
 /out
 *.log
+build/

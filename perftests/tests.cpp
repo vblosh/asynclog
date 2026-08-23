@@ -46,7 +46,7 @@ void DoLog()
 
 	auto id = std::this_thread::get_id();
 	for (size_t i = 0; i < NUM_ITER; i++) {
-		sprintf(buf, "thread_id=%5u iteration=%u", id, (unsigned int)i);
+		sprintf(buf, "thread_id=%5zu iteration=%u", std::hash<std::thread::id>{}(id), (unsigned int)i);
 		std::string message(buf);
 		auto start_time = std::chrono::high_resolution_clock::now();
 		SLOG(LogLevel::INFO, AREA, message);
