@@ -24,13 +24,54 @@ const size_t NUM_ITER = 1000;
 const size_t NUM_THREADS = 10;
 const size_t FILTERED_RATIO = 10;
 
+struct ThreadStats {
+	uint64_t logMin;
+	uint64_t logMax;
+	uint64_t logMean;
+	uint64_t filteredMin;
+	uint64_t filteredMax;
+	uint64_t filteredMean;
+};
+
 uint64_t mean(const std::vector<uint64_t>& v)
 {
 	uint64_t total = std::accumulate(v.begin(), v.end(), uint64_t(0)); // '0' is the initial value
 	return total / v.size();
 }
 
-void DoLog()
+void PrintSummary(const string& label, const vector<ThreadStats>& stats)
+{
+	uint64_t globalLogMin = UINT64_MAX, globalLogMax = 0, globalLogTotal = 0;
+	uint64_t globalFiltMin = UINT64_MAX, globalFiltMax = 0, globalFiltTotal = 0;
+	size_t count = stats.size();
+
+	for (auto& s : stats) {
+		globalLogMin = min(globalLogMin, s.logMin);
+		globalLogMax = max(globalLogMax, s.logMax);
+		globalLogTotal += s.logMean;
+		globalFiltMin = min(globalFiltMin, s.filteredMin);
+		globalFiltMax = max(globalFiltMax, s.filteredMax);
+		globalFiltTotal += s.filteredMean;
+	}
+
+	uint64_t avgLogMean = globalLogTotal / count;
+	uint64_t avgFiltMean = globalFiltTotal / count;
+
+	cout << "\n========== " << label << " SUMMARY ==========" << endl;
+	cout << "Threads: " << count
+	     << " | Iterations/thread: " << NUM_ITER
+	     << " | Filtered ratio: " << FILTERED_RATIO << endl;
+	cout << fixed << setprecision(2);
+	cout << "Logged   | global min=" << setw(8) << double(globalLogMin) / 1000 << " us"
+	     << " | global max=" << setw(8) << double(globalLogMax) / 1000 << " us"
+	     << " | avg mean=" << setw(8) << double(avgLogMean) / 1000 << " us" << endl;
+	cout << "Filtered | global min=" << setw(8) << double(globalFiltMin) / 1000 << " us"
+	     << " | global max=" << setw(8) << double(globalFiltMax) / 1000 << " us"
+	     << " | avg mean=" << setw(8) << double(avgFiltMean) / 1000 << " us" << endl;
+	cout << "=========================================" << endl;
+}
+
+ThreadStats DoLog()
 {
 	std::vector<uint64_t> logtimes(NUM_ITER);
 	std::vector<uint64_t> filteredtimes(NUM_ITER*FILTERED_RATIO);
@@ -49,7 +90,7 @@ void DoLog()
 		for (size_t j = 0; j < FILTERED_RATIO; j++)
 		{
 			auto start_time = std::chrono::high_resolution_clock::now();
-			LOG(LogLevel::INFO, FILTERED) << "thread_id=" << std::setw(5) << id << " iteration=" << i;
+			LOG(LogLevel::TRACE, FILTERED) << "thread_id=" << std::setw(5) << id << " iteration=" << i;
 			auto stop_time = std::chrono::high_resolution_clock::now();
 			filteredtimes[i * FILTERED_RATIO + j] = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_time - start_time).count();
 		}
@@ -68,6 +109,7 @@ void DoLog()
 		"max = " << setw(6) << fixed << setprecision(2) << double(*minmaxf.second)/1000 << " us | "
 		"mean = " << setw(6) << fixed << setprecision(2) << double(meantimef)/1000 << " us | ";
 
+	return { *minmax.first, *minmax.second, meantime, *minmaxf.first, *minmaxf.second, meantimef };
 }
 
 void PerfTest()
@@ -97,9 +139,12 @@ void PerfTest()
 
 	std::vector<std::thread> threads;
 	threads.resize(NUM_THREADS);
+	std::vector<ThreadStats> allStats(NUM_THREADS);
 
 	for (size_t i = 0; i < NUM_THREADS; i++) {
-		threads[i] = std::thread(DoLog);
+		threads[i] = std::thread([&allStats, i]() {
+			allStats[i] = DoLog();
+		});
 	}
 
 	for (size_t i = 0; i < NUM_THREADS; i++) {
@@ -107,15 +152,16 @@ void PerfTest()
 	}
 
 	Logger::Instance().Shutdown();
+	PrintSummary("asynclog", allStats);
 }
 
-void DoLog1()
+ThreadStats DoLog1()
 {
 	std::vector<uint64_t> logtimes(NUM_ITER);
 	std::vector<uint64_t> filteredtimes(NUM_ITER * FILTERED_RATIO);
 
 	log4cplus::Logger logger = log4cplus::Logger::getInstance(AREA);
-	log4cplus::Logger rootLogger = log4cplus::Logger::getInstance("rootLogger");
+	log4cplus::Logger filteredLogger = log4cplus::Logger::getInstance(FILTERED);
 	log4cplus::Logger loggerCOUT = log4cplus::Logger::getInstance(COUT);
 
 	auto id = std::this_thread::get_id();
@@ -128,7 +174,7 @@ void DoLog1()
 		for (size_t j = 0; j < FILTERED_RATIO; j++)
 		{
 			auto start_time = std::chrono::high_resolution_clock::now();
-			LOG4CPLUS_INFO(rootLogger, LOG4CPLUS_TEXT("thread_id=") << std::setw(5) << id << LOG4CPLUS_TEXT(" iteration=") << i);
+			LOG4CPLUS_TRACE(filteredLogger, LOG4CPLUS_TEXT("thread_id=") << std::setw(5) << id << LOG4CPLUS_TEXT(" iteration=") << i);
 			auto stop_time = std::chrono::high_resolution_clock::now();
 			filteredtimes[i * FILTERED_RATIO + j] = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_time - start_time).count();
 		}
@@ -139,10 +185,10 @@ void DoLog1()
 	LOG4CPLUS_INFO(loggerCOUT, LOG4CPLUS_TEXT("thread_id=") << std::setw(5) << id << LOG4CPLUS_TEXT(" logging time: min time=") << double(*minmax.first) / 1000
 		<< LOG4CPLUS_TEXT(" us, max time=") << double(*minmax.second) / 1000 << LOG4CPLUS_TEXT(" us, mean time=") << double(meantime) / 1000 << LOG4CPLUS_TEXT(" us"));
 
-	//auto minmaxf = std::minmax_element(filteredtimes.begin(), filteredtimes.end());
-	//auto meantimef = mean(filteredtimes);
-	//LOG4CPLUS_INFO(loggerCOUT, LOG4CPLUS_TEXT("thread_id=") << std::setw(5) << id << LOG4CPLUS_TEXT(" logging time: min time=") << *minmaxf.first
-	//	<< LOG4CPLUS_TEXT(" ns, max time=") << *minmaxf.second << LOG4CPLUS_TEXT(" ns, mean time=") << meantimef << LOG4CPLUS_TEXT(" ns"));
+	auto minmaxf = std::minmax_element(filteredtimes.begin(), filteredtimes.end());
+	auto meantimef = mean(filteredtimes);
+
+	return { *minmax.first, *minmax.second, meantime, *minmaxf.first, *minmaxf.second, meantimef };
 }
 
 void PerfTest1()
@@ -152,15 +198,23 @@ void PerfTest1()
 	config.configure();
 
 	log4cplus::Logger logger = log4cplus::Logger::getInstance(COUT);
+	log4cplus::Logger filteredLogger = log4cplus::Logger::getInstance(FILTERED);
+
+	// Verify filtering is working
+	LOG4CPLUS_INFO(logger, LOG4CPLUS_TEXT("FILTERED logger effective level: ") 
+		<< (filteredLogger.isEnabledFor(log4cplus::INFO_LOG_LEVEL) ? "INFO (NOT filtered)" : "ERROR (filtered)"));
 
 	LOG4CPLUS_INFO(logger, LOG4CPLUS_TEXT("Perfomanse test started with ") << NUM_THREADS << LOG4CPLUS_TEXT(" threads")
 		<< LOG4CPLUS_TEXT(" and ") << NUM_ITER << LOG4CPLUS_TEXT(" number of iteration. Filtered ratio is set to ") << FILTERED_RATIO);
 
 	std::vector<std::thread> threads;
 	threads.resize(NUM_THREADS);
+	std::vector<ThreadStats> allStats(NUM_THREADS);
 
 	for (size_t i = 0; i < NUM_THREADS; i++) {
-		threads[i] = std::thread(DoLog1);
+		threads[i] = std::thread([&allStats, i]() {
+			allStats[i] = DoLog1();
+		});
 	}
 
 	for (size_t i = 0; i < NUM_THREADS; i++) {
@@ -168,6 +222,7 @@ void PerfTest1()
 	}
 
 	logger.shutdown();
+	PrintSummary("log4cplus", allStats);
 }
 
 int main(int argc, char** argv)
