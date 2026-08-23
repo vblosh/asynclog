@@ -39,61 +39,40 @@ SinkFile::~SinkFile()
     ofs.close();
 }
 
-AsyncSink::AsyncSink(SinkPtr asink)
-    : sink(asink), proceed(true), thread_exception_ptr(nullptr)
+AsyncSink::AsyncSink(SinkPtr asink, size_t queueSize)
+    : thread_exception_ptr(nullptr), allocator(queueSize)
+    , logQueue(allocator.allocate(Node(Logdata())))
+    , sink(std::move(asink)), consumer(&AsyncSink::Consume, this)
 {
-    Start();
-}
-
-AsyncSink::~AsyncSink()
-{
-    Stop();
 }
 
 void AsyncSink::Log(const Logdata& logdata)
 {
-    Node* node = new Node;
-    node->next.store(nullptr);
-    node->value = logdata;
-    buffer.push(node);
+    Node* node = allocator.allocate(Node(logdata));
+    logQueue.push(node);
 }
 
 void AsyncSink::Log(Logdata&& logdata)
 {
-    Node* node = new Node;
-    node->next.store(nullptr);
-    node->value = std::move(logdata);
-    buffer.push(node);
+    Node* node = allocator.allocate(Node(std::move(logdata)));
+    logQueue.push(node);
 }
 
-void AsyncSink::Start()
+void AsyncSink::Consume(std::stop_token stoken)
 {
-    proceed = true;
-    consumer = std::thread(&AsyncSink::Consume, this);
-}
-
-void AsyncSink::Stop()
-{
-    proceed = false;
-    if (consumer.joinable()) {
-        consumer.join();
-    }
-}
-
-void AsyncSink::Consume()
-{
-    Logdata next_entry;
     Node* node;
     try {
-        while (node = buffer.pop(), proceed || node != nullptr)
+        // Drain the queue before exiting: keep consuming after a stop is
+        // requested until no nodes are left.
+        while (node = logQueue.pop(), !stoken.stop_requested() || node != nullptr)
         {
             while (node != nullptr)
             {
                 sink->Log(node->value);
-                delete node;
-                node = buffer.pop();
+                allocator.deallocate(node);
+                node = logQueue.pop();
             }
-            std::this_thread::sleep_for(1ms);
+            std::this_thread::sleep_for(10ms);
         }
     }
     catch (...) {

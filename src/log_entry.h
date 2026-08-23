@@ -1,6 +1,7 @@
 #pragma once
 #include "interfaces.h"
 #include "logger.h"
+#include "logdata.h"
 
 #include <sstream>
 
@@ -14,7 +15,8 @@ class LogEntry final
     Logdata logData;
 
 public:
-    LogEntry(Logger& alog, Logdata&& logdata) : log(alog), logData(std::move(logdata)) {}
+    LogEntry(Logger& alog, Logdata&& logdata) : log(alog), logData(std::move(logdata)) 
+    {}
 
     ~LogEntry()
     {

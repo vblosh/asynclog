@@ -1,13 +1,13 @@
 #pragma once
 #include <iostream>
 #include <fstream>
+#include <thread>
+#include <stop_token>
+#include <mutex>
+
 #include "sinks.h"
 #include "mpscqueue.h"
-
-#include <thread>
-#include <atomic>
-#include <mutex>
-#include <condition_variable>
+#include "node.h"
 
 namespace asynclog
 {
@@ -53,22 +53,22 @@ public:
 class AsyncSink : public ISink
 {
     std::exception_ptr thread_exception_ptr;
-    MpscQueue buffer;
-    std::thread consumer;
-    std::atomic<bool> proceed;
+    NodeAllocator allocator;
+    MpscQueue logQueue;
     SinkPtr sink;
+    // Declared last: std::jthread requests stop and joins in its destructor,
+    // so the consumer finishes before the queue, allocator and sink above
+    // are destroyed. No explicit Stop() needed.
+    std::jthread consumer;
 
 public:
-    AsyncSink(SinkPtr asink);
-    ~AsyncSink();
+    AsyncSink(SinkPtr asink, size_t queueSize = 1024*10);
 
     void Log(const Logdata&) override;
     void Log(Logdata&& logdata) override;
 
 private:
-    void Start();
-    void Stop();
-    void Consume();
+    void Consume(std::stop_token stoken);
 };
 
 }

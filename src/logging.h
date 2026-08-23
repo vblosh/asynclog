@@ -1,11 +1,9 @@
 #ifndef GUARD_LOGGING_H
 #define GUARD_LOGGING_H
 
-#include "interfaces.h"
-#include "formaters.h"
-#include "sinks.h"
-#include "logger.h"
+#include "logdata.h"
 #include "log_entry.h"
+#include "logger.h"
 
 #ifndef LOG_MAX_LEVEL
 #ifdef NDEBUG
@@ -19,9 +17,12 @@
 #define DEFAULT_LOG_LEVEL LogLevel::INFO
 #endif // !DEFAULT_LOG_LEVEL
 
+// Note: __VA_OPT__ (C++20) drops the comma when no variadic arguments
+// are given, e.g. LOG(LogLevel::ERROR).
 #define LOG(level, ...) \
 if (level < LOG_MAX_LEVEL) ;\
-else ::asynclog::LogEntry(::asynclog::Logger::Instance(), Logdata(level, __VA_ARGS__)).Get()
+else if( !::asynclog::Logger::Instance().Enabled(level __VA_OPT__(,) __VA_ARGS__) ) ; \
+else ::asynclog::LogEntry(::asynclog::Logger::Instance(), Logdata(level __VA_OPT__(,) __VA_ARGS__)).Get()
 
 #define SLOG(level, ...) \
 if (level < LOG_MAX_LEVEL) ;\

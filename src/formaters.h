@@ -1,4 +1,5 @@
 #pragma once 
+#include <array>
 #include <string>
 
 #include "interfaces.h"
@@ -9,7 +10,8 @@ namespace asynclog
 class LogFormatter : public IFormatter
 {
     std::string timeformat;
-    static std::array<std::string, 7> labels;
+    inline static std::array<std::string, 8> labels
+        { "TRACE", "DEBUG", "INFO ", "NOTICE", "WARN ", "ERROR", "FATAL", "NONE " };
 
 public:
     LogFormatter(const std::string tmformat = "%d/%m/%Y %H:%M:%S") : timeformat(tmformat) {}

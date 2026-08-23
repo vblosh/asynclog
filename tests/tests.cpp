@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
+#include <iomanip>
 #include <gtest/gtest.h>
 
 #include "logging.h"
@@ -16,6 +17,7 @@ protected:
 	string message = "Hello, world!";
 
 	void SetUp() override {
+		Logger::Instance().SetReportingLevel(LogLevel::TRACE);
 	}
 
 	void TearDown() override {
@@ -107,29 +109,27 @@ TEST_F(LoggerTest, testSink2)
 TEST_F(LoggerTest, testReportingLevel)
 {
 	std::shared_ptr<AreaFilter> filter(new AreaFilter);
-	filter->SetFilter(area, LogLevel::WARNING);
 	std::shared_ptr<TestSink> testSink(new TestSink);
 	Logger::Instance().AddSink(FilteredSinkPtr(new FilteredSink(testSink, filter)));
 	Logger::Instance().SetReportingLevel(LogLevel::ERROR);
 
 	// LogLevel is equal ReportingLevel, message logged
 	LOG(LogLevel::ERROR, area) << message;
-	ASSERT_EQ(1, testSink->Count());
+	EXPECT_EQ(1, testSink->Count());
 
 	// LogLevel is less than ReportingLevel, message not logged
 	LOG(LogLevel::WARNING, area) << message;
-	ASSERT_EQ(1, testSink->Count());
+	EXPECT_EQ(1, testSink->Count());
 
 	// LogLevel is greater than ReportingLevel, message logged
 	LOG(LogLevel::FATAL, area) << message;
-	ASSERT_EQ(2, testSink->Count());
+	EXPECT_EQ(2, testSink->Count());
 }
 
 TEST_F(LoggerTest, testFilter)
 {
 	std::shared_ptr<AreaFilter> filter(new AreaFilter);
 	filter->SetFilter(area, LogLevel::WARNING);
-	filter->SetReportingLevel(LogLevel::ERROR);
 
 	std::shared_ptr<TestSink> testSink(new TestSink);
 	Logger::Instance().AddSink(FilteredSinkPtr(new FilteredSink(testSink, filter)));
@@ -137,41 +137,43 @@ TEST_F(LoggerTest, testFilter)
 
 	// LogLevel is equal than FilterLevel, message logged
 	LOG(LogLevel::WARNING, area) << message;
-	ASSERT_EQ(1, testSink->Count());
+	EXPECT_EQ(1, testSink->Count());
 
 	// LogLevel is less than FilterLevel, message not logged
 	LOG(LogLevel::INFO, area) << message;
-	ASSERT_EQ(1, testSink->Count());
+	EXPECT_EQ(1, testSink->Count());
 
 	// LogLevel is equal than FilterLevel, message logged
 	LOG(LogLevel::WARNING, area) << message;
-	ASSERT_EQ(2, testSink->Count());
+	EXPECT_EQ(2, testSink->Count());
 
 	// LogLevel is less than FilterLevel, message not logged
 	LOG(LogLevel::INFO, area) << message;
-	ASSERT_EQ(2, testSink->Count());
+	EXPECT_EQ(2, testSink->Count());
 
-	// LogLevel is less than FilterReportingLevel, message not logged
+	Logger::Instance().SetReportingLevel(LogLevel::ERROR);
+	// LogLevel is less global ReportingLevel, message not logged
 	LOG(LogLevel::WARNING) << message;
-	ASSERT_EQ(2, testSink->Count());
+	EXPECT_EQ(2, testSink->Count());
 
-	// LogLevel is equal to FilterReportingLevel, message logged
+	// LogLevel is equal to global ReportingLevel, message logged
 	LOG(LogLevel::ERROR) << message;
-	ASSERT_EQ(3, testSink->Count());
+	EXPECT_EQ(3, testSink->Count());
 
 	Logger::Instance().SetReportingLevel(LogLevel::NONE);
 	// Set global ReportingLevel to NONE nothing is logged
 	LOG(LogLevel::FATAL) << message;
-	ASSERT_EQ(3, testSink->Count());
+	EXPECT_EQ(3, testSink->Count());
 
-	// Set global ReportingLevel to NONE nothing is logged
-	LOG(LogLevel::FATAL, area) << message;
-	ASSERT_EQ(3, testSink->Count());
+	// global ReportingLevel is NONE but 
+	// LogLevel is less than FilterLevel, message is logged
+	LOG(LogLevel::WARNING, area) << message;
+	EXPECT_EQ(4, testSink->Count());
 }
 
 TEST_F(LoggerTest, testSinkFile)
 {
-	char* fileName = "test.log";
+	const char* fileName = "test.log";
 	Logger::Instance().AddSink(FilteredSinkPtr(new FilteredSink(SinkPtr(new SinkCout))));
 	Logger::Instance().AddSink(FilteredSinkPtr(new FilteredSink(SinkPtr(new SinkFile(fileName)))));
 	LOG(LogLevel::ERROR, area) << message;
@@ -179,12 +181,12 @@ TEST_F(LoggerTest, testSinkFile)
 
 TEST_F(LoggerTest, testAsyncSinkFile)
 {
-	char* fileName = "test1.log";
+	const char* fileName = "test1.log";
 	Logger::Instance().AddSink(
 		FilteredSinkPtr(new FilteredSink(
-			SinkPtr(new AsyncSink(SinkPtr(new SinkFile(fileName)))))));
+			SinkPtr(new AsyncSink(SinkPtr(new SinkFile(fileName)), 2)))));
 
-	for (size_t i = 0; i < 20; i++) {
+	for (size_t i = 0; i < 100; i++) {
 		LOG(LogLevel::ERROR, area) << i;
 	}
 }
@@ -200,8 +202,10 @@ void DoLog()
 
 TEST_F(LoggerTest, testAsyncSinkFileMultithreaded)
 {
+	Logger::Instance().SetReportingLevel(LogLevel::TRACE);
+
 	const size_t NUM_THREADS = 8;
-	char* fileName = "test2.log";
+	const char* fileName = "test2.log";
 
 	Logger::Instance().AddSink(
 		FilteredSinkPtr(new FilteredSink(

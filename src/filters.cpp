@@ -3,13 +3,13 @@
 namespace asynclog
 {
 
-bool AreaFilter::Enabled(const Logdata& data)
+bool AreaFilter::Enabled(LogLevel level, const std::string& area)
 {
-    auto it = areaFilter.find(data.area);
+    auto it = areaFilter.find(area);
     if (it != areaFilter.cend()) {
-        return data.level >= it->second;
+        return level >= it->second;
     }
-    return data.level >= logLevel;
+    return level >= logLevel;
 }
 
 void AreaFilter::SetFilter(const std::string& area, LogLevel level)

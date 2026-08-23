@@ -7,29 +7,50 @@ void Logger::AddSink(const FilteredSinkPtr& os)
     sinks.push_back(os);
 }
 
+bool Logger::Enabled(const LogLevel level) const
+{
+    return !(level < reportingLevel.load(std::memory_order_relaxed) || sinks.empty());
+}
+
+bool Logger::Enabled(const LogLevel level, const std::string& area) const
+{
+    // A message is worth formatting only if at least one sink will log it.
+    // Per-area filter overrides (e.g. an area enabled below the global
+    // reporting level) are honoured by consulting each sink's filter.
+    for (size_t i = 0; i < sinks.size(); ++i) {
+        if (sinks[i]->Enabled(level, area)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void Logger::Log(Logdata&& logdata) {
-    if (logdata.level < reportingLevel || sinks.empty())
+    if (sinks.empty())
         return;
 
-    for (size_t i = 1; i < sinks.size(); i++) {
-        if (sinks[i]->Enabled(logdata)) {
+    for (size_t i = 1; i < sinks.size(); ++i) {
+        if (sinks[i]->Enabled(logdata.level, logdata.area)) {
             sinks[i]->Log(logdata);
         }
     }
 
-    if (sinks[0]->Enabled(logdata)) {
+    if (sinks[0]->Enabled(logdata.level, logdata.area)) {
         sinks[0]->Log(std::move(logdata));
     }
-    }
+}
 
-LogLevel& Logger::ReportingLevel()
+LogLevel Logger::ReportingLevel() const
 {
-    return reportingLevel;
+    return reportingLevel.load(std::memory_order_relaxed);
 }
 
 void Logger::SetReportingLevel(LogLevel level)
 {
-    reportingLevel = level;
+    reportingLevel.store(level, std::memory_order_relaxed);
+    for (size_t i = 0; i < sinks.size(); ++i) {
+        sinks[i]->SetReportingLevel(level);
+    }
 }
 
 void Logger::Shutdown()
