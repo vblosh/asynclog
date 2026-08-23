@@ -1,9 +1,5 @@
 #pragma once
 #include <atomic>
-#include <mutex>
-#include <stdexcept>
-#include "logging.h"
-#include "spinlock.h"
 #include "node.h"
 
 namespace asynclog

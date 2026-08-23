@@ -17,10 +17,10 @@ your application.
 - **Two-level filtering** — a global reporting level plus per-area level
   overrides (`AreaFilter`), and compile-time elimination of log statements
   below `LOG_MAX_LEVEL`.
-- **Multiple sinks** — console, file, null, or your own via the `ISink`
+- **Multiple sinks** — console, file, null, composite, or your own via the `ISink`
   interface; each sink can be wrapped in `AsyncSink` and have its own filter.
 - **Pluggable formatting** — implement `IFormatter` or use the built-in
-  `LogFormatter`.
+  `LogFormatter` or `JsonFormatter`.
 - **No external dependencies** for the library itself (STL only).
 
 ## Requirements
@@ -93,6 +93,9 @@ that don't reach any sink. asynclog uses compile-time elimination
 - Asynchronous I/O keeps logging off the critical path
 - Integer area IDs provide O(1) filter lookups (no hash map overhead)
 - Compile-time log level elimination removes disabled logs entirely
+- Chunked pool allocator (`NodeAllocator`) pre-reserves nodes in contiguous
+  memory and recycles deallocated nodes via a free list first before allocating
+  new ones, avoiding per-message heap allocations on the hot path
 
 Run the benchmark yourself:
 ```sh
@@ -236,17 +239,79 @@ namespace asynclog::areas {
 
 All sinks live in `sinksimp.h`:
 
-| Sink          | Description                                              |
-|---------------|----------------------------------------------------------|
-| `SinkCout`    | Formatted output to `std::cout`.                         |
-| `SinkFile`    | Formatted output to a file (truncated on open).          |
-| `SinkNull`    | Discards everything.                                     |
-| `AsyncSink`   | Decorator: enqueues records and forwards them to the wrapped sink from a dedicated consumer thread. |
+| Sink            | Description                                              |
+|-----------------|----------------------------------------------------------|
+| `SinkCout`      | Formatted output to `std::cout`.                         |
+| `SinkFile`      | Formatted output to a file (truncated on open).          |
+| `SinkNull`      | Discards everything.                                     |
+| `AsyncSink`     | Decorator: enqueues records and forwards them to the wrapped sink from a dedicated consumer thread. |
+| `CompositeSink` | Broadcasts records to multiple child sinks sequentially. |
 
 `AsyncSink` takes an optional queue size (default `1024 * 10`):
 
 ```cpp
 SinkPtr async = SinkPtr(new AsyncSink(SinkPtr(new SinkFile("app.log")), 4096));
+```
+
+#### CompositeSink Example
+
+Combine multiple sinks under a single asynchronous queue and background worker:
+
+```cpp
+// Create a composite sink broadcasting to both file and console
+auto composite = std::make_shared<CompositeSink>(std::initializer_list<SinkPtr>{
+    std::make_shared<SinkFile>("app.log"),
+    std::make_shared<SinkCout>()
+});
+
+// Wrap the composite sink in AsyncSink so both outputs are written on one background thread
+Logger::Instance().AddSink(
+    FilteredSinkPtr(new FilteredSink(SinkPtr(new AsyncSink(composite))))
+);
+```
+
+#### Multi-Sink Logging Strategies
+
+When routing log messages to multiple outputs asynchronously, you have two design options:
+
+1. **Option 1: Single `AsyncSink` with `CompositeSink`** — All child sinks share a single queue, memory pool, and background worker thread (`std::jthread`).
+2. **Option 2: Multiple independent `AsyncSink` instances** — Each target sink has its own queue, memory pool, and dedicated background worker thread.
+
+| Feature | Option 1: Composite + 1 `AsyncSink` | Option 2: Multiple `AsyncSink`s |
+| :--- | :--- | :--- |
+| **Worker Threads** | **1 background thread** (`std::jthread`) | **1 thread per sink** |
+| **Memory / Queues** | **1 queue & pool allocator** | Separate queue & pool per sink |
+| **I/O Execution** | Sinks execute sequentially on the background thread | Sinks execute fully concurrently in background |
+| **Fault Isolation** | A slow sink (e.g. slow disk/network) delays other sinks | A slow sink will **not** block other sinks |
+
+### Formatters
+
+Formatters implement `IFormatter` (in `formaters.h`):
+
+| Formatter       | Output Style | Default Format String |
+|-----------------|--------------|-----------------------|
+| `LogFormatter`  | Human-readable plain text | `"%d/%m/%Y %H:%M:%S"` |
+| `JsonFormatter` | JSON Lines (NDJSON) with escaping | `"%Y-%m-%d %H:%M:%S"` |
+
+#### JsonFormatter Example
+
+```cpp
+// Attach JsonFormatter to a file sink
+auto jsonFileSink = std::make_shared<SinkFile>(
+    "events.json",
+    std::make_shared<JsonFormatter>("%Y-%m-%dT%H:%M:%S")
+);
+
+Logger::Instance().AddSink(
+    FilteredSinkPtr(new FilteredSink(SinkPtr(new AsyncSink(jsonFileSink))))
+);
+
+LOG(LogLevel::INFO, areas::NETWORK) << "Client connected from \"192.168.1.10\"";
+```
+
+Output:
+```json
+{"timestamp":"2026-08-23T18:00:00","level":"INFO","area":"NETWORK","message":"Client connected from \"192.168.1.10\""}
 ```
 
 ### Custom sinks and formatters
@@ -270,8 +335,7 @@ struct IFilter {
 ```
 
 `Logdata` carries the `timestamp`, `level`, `areaId` and `message` of a record.
-`LogFormatter` accepts a `strftime`-style time format
-(default `"%d/%m/%Y %H:%M:%S"`).
+`LogFormatter` and `JsonFormatter` accept standard `strftime`-style time format strings.
 
 ## Threading contract
 
@@ -293,9 +357,9 @@ src/          the asynclog static library
   logdata.h     Logdata record, loglevel.h LogLevel enum
   interfaces.h  ISink / IFilter / IFilteredSink / IFormatter
   sinks.*       FilteredSink (sink + filter)
-  sinksimp.*    SinkCout, SinkFile, SinkNull, AsyncSink
+  sinksimp.*    SinkCout, SinkFile, SinkNull, AsyncSink, CompositeSink
   filters.*     AreaFilter (per-area levels)
-  formaters.*   LogFormatter
+  formaters.*   LogFormatter, JsonFormatter
   mpscqueue.h   lock-free MPSC queue
   node.h        Node + chunked NodeAllocator
   spinlock.h    spinlock used by the allocator

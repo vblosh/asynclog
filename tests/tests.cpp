@@ -222,3 +222,70 @@ TEST_F(LoggerTest, testAsyncSinkFileMultithreaded)
 	}
 }
 
+TEST_F(LoggerTest, testJsonFormatter)
+{
+	EXPECT_EQ("INFO", getLogLevelName(LogLevel::INFO));
+	EXPECT_EQ("ERROR", getLogLevelName(LogLevel::ERROR));
+	EXPECT_EQ("INFO", LogLevelLabels[static_cast<size_t>(LogLevel::INFO)]);
+
+	JsonFormatter formatter("%Y-%m-%d %H:%M:%S");
+	Logdata data(LogLevel::INFO, areas::NETWORK, "Connection from \"127.0.0.1\"\nstatus: OK");
+
+	std::ostringstream ss;
+	formatter.Format(ss, data);
+
+	std::string output = ss.str();
+	EXPECT_NE(output.find("\"level\":\"INFO\""), std::string::npos);
+	EXPECT_NE(output.find("\"area\":\"NETWORK\""), std::string::npos);
+	EXPECT_NE(output.find("\"message\":\"Connection from \\\"127.0.0.1\\\"\\nstatus: OK\""), std::string::npos);
+	EXPECT_EQ(output.front(), '{');
+	EXPECT_EQ(output[output.size() - 2], '}'); // before newline
+}
+
+TEST_F(LoggerTest, testCompositeSink)
+{
+	std::shared_ptr<TestSink> testSink1 = std::make_shared<TestSink>();
+	std::shared_ptr<TestSink> testSink2 = std::make_shared<TestSink>();
+
+	auto composite = std::make_shared<CompositeSink>(std::initializer_list<SinkPtr>{testSink1, testSink2});
+	Logger::Instance().AddSink(FilteredSinkPtr(new FilteredSink(composite)));
+
+	LOG(LogLevel::ERROR, area) << "Composite test message";
+
+	EXPECT_EQ(1, testSink1->Count());
+	EXPECT_EQ("Composite test message", testSink1->LastEntry().message);
+	EXPECT_EQ(area, testSink1->LastEntry().areaId);
+	EXPECT_EQ(LogLevel::ERROR, testSink1->LastEntry().level);
+
+	EXPECT_EQ(1, testSink2->Count());
+	EXPECT_EQ("Composite test message", testSink2->LastEntry().message);
+	EXPECT_EQ(area, testSink2->LastEntry().areaId);
+	EXPECT_EQ(LogLevel::ERROR, testSink2->LastEntry().level);
+}
+
+TEST_F(LoggerTest, testCompositeSinkWithAsyncSink)
+{
+	std::shared_ptr<TestSink> testSink1 = std::make_shared<TestSink>();
+	std::shared_ptr<TestSink> testSink2 = std::make_shared<TestSink>();
+
+	auto composite = std::make_shared<CompositeSink>();
+	composite->AddSink(testSink1);
+	composite->AddSink(testSink2);
+
+	Logger::Instance().AddSink(
+		FilteredSinkPtr(new FilteredSink(
+			SinkPtr(new AsyncSink(composite)))));
+
+	for (size_t i = 0; i < 20; ++i) {
+		LOG(LogLevel::ERROR, area) << "Async composite " << i;
+	}
+
+	Logger::Instance().Shutdown();
+
+	EXPECT_EQ(20, testSink1->Count());
+	EXPECT_EQ(20, testSink2->Count());
+	EXPECT_EQ("Async composite 19", testSink1->LastEntry().message);
+	EXPECT_EQ("Async composite 19", testSink2->LastEntry().message);
+}
+
+
