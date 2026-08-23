@@ -173,7 +173,7 @@ void PerfTest1()
 int main(int argc, char** argv)
 {
 	PerfTest();
-	//PerfTest1();
+	PerfTest1();
 
 	return 0;
 }

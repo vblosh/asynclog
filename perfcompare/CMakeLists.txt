@@ -18,3 +18,5 @@ set(SOURCE_FILES tests.cpp)
 add_executable(perfcompare ${SOURCE_FILES} ${HEADER_FILES})
 target_include_directories(perfcompare PRIVATE ${LOG_INCLUDE} ${LOG4CPLUS_INCLUDE_DIRS})
 target_link_libraries(perfcompare PRIVATE asynclog Threads::Threads ${LOG4CPLUS_LIBRARIES})
+
+configure_file(${CMAKE_SOURCE_DIR}/log4cplus.cfg ${CMAKE_BINARY_DIR}/log4cplus.cfg COPYONLY)
