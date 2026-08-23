@@ -18,7 +18,7 @@ struct ISink
 struct IFilter
 {
     virtual ~IFilter() = default;
-    virtual bool Enabled(LogLevel level, const std::string& area) = 0;
+    virtual bool Enabled(LogLevel level, int areaId) = 0;
     virtual void SetReportingLevel(LogLevel level) = 0;
 };
 

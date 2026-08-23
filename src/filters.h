@@ -1,6 +1,6 @@
 #pragma once
 #include "interfaces.h"
-#include <unordered_map>
+#include <vector>
 #include <string>
 
 namespace asynclog
@@ -8,14 +8,14 @@ namespace asynclog
 
 class AreaFilter : public IFilter
 {
-    std::unordered_map<std::string, LogLevel> areaFilter;
+    std::vector<LogLevel> areaFilter;
     LogLevel logLevel;
 
 public:
     AreaFilter() : logLevel(LogLevel::TRACE) {}
-    bool Enabled(LogLevel level, const std::string& area) override;
+    bool Enabled(LogLevel level, int areaId) override;
     void SetReportingLevel(LogLevel level) override;
-    void SetFilter(const std::string& area, LogLevel level);
+    void SetFilter(int areaId, LogLevel level);
 };
 
 }

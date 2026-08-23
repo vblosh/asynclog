@@ -7,6 +7,7 @@
 #include <numeric>
 
 #include "sinksimp.h"
+#include "log_areas.h"
 #include <log4cplus/logger.h>
 #include <log4cplus/loggingmacros.h>
 #include <log4cplus/configurator.h>
@@ -16,13 +17,28 @@
 using namespace std;
 using namespace asynclog;
 
-string AREA = "PERFOMANCE_TEST";
-string COUT = "COUT";
-string FILTERED = "FILTERED";
+// Integer area IDs for asynclog (from centralized registry)
+const int AREA_ID = areas::PERFORMANCE;
+const int COUT_ID = areas::DEFAULT;
+const int FILTERED_ID = areas::DEBUG;
+
+// String names for log4cplus
+const string AREA = "PERFOMANCE_TEST";
+const string COUT = "COUT";
+const string FILTERED = "FILTERED";
 
 const size_t NUM_ITER = 1000;
 const size_t NUM_THREADS = 10;
 const size_t FILTERED_RATIO = 10;
+
+struct ThreadStats {
+	uint64_t logMin;
+	uint64_t logMax;
+	uint64_t logMean;
+	uint64_t filteredMin;
+	uint64_t filteredMax;
+	uint64_t filteredMean;
+};
 
 uint64_t mean(const std::vector<uint64_t>& v)
 {
@@ -30,7 +46,60 @@ uint64_t mean(const std::vector<uint64_t>& v)
 	return total / v.size();
 }
 
-void DoLog()
+void PrintSummary(const string& label, const vector<ThreadStats>& stats)
+{
+	uint64_t globalLogMin = UINT64_MAX, globalLogMax = 0, globalLogTotal = 0;
+	uint64_t globalFiltMin = UINT64_MAX, globalFiltMax = 0, globalFiltTotal = 0;
+	size_t count = stats.size();
+
+	// Collect mean values for median calculation
+	vector<uint64_t> logMeans, filteredMeans;
+
+	for (auto& s : stats) {
+		globalLogMin = min(globalLogMin, s.logMin);
+		globalLogMax = max(globalLogMax, s.logMax);
+		globalLogTotal += s.logMean;
+		globalFiltMin = min(globalFiltMin, s.filteredMin);
+		globalFiltMax = max(globalFiltMax, s.filteredMax);
+		globalFiltTotal += s.filteredMean;
+		
+		logMeans.push_back(s.logMean);
+		filteredMeans.push_back(s.filteredMean);
+	}
+
+	uint64_t avgLogMean = globalLogTotal / count;
+	uint64_t avgFiltMean = globalFiltTotal / count;
+
+	// Calculate medians
+	sort(logMeans.begin(), logMeans.end());
+	sort(filteredMeans.begin(), filteredMeans.end());
+	
+	uint64_t medianLogMean, medianFiltMean;
+	if (count % 2 == 0) {
+		medianLogMean = (logMeans[count/2 - 1] + logMeans[count/2]) / 2;
+		medianFiltMean = (filteredMeans[count/2 - 1] + filteredMeans[count/2]) / 2;
+	} else {
+		medianLogMean = logMeans[count/2];
+		medianFiltMean = filteredMeans[count/2];
+	}
+
+	cout << "\n========== " << label << " SUMMARY ==========" << endl;
+	cout << "Threads: " << count
+	     << " | Iterations/thread: " << NUM_ITER
+	     << " | Filtered ratio: " << FILTERED_RATIO << endl;
+	cout << fixed << setprecision(2);
+	cout << "Logged   | global min=" << setw(8) << double(globalLogMin) / 1000 << " us"
+	     << " | global max=" << setw(8) << double(globalLogMax) / 1000 << " us"
+	     << " | avg mean=" << setw(8) << double(avgLogMean) / 1000 << " us"
+	     << " | median=" << setw(8) << double(medianLogMean) / 1000 << " us" << endl;
+	cout << "Filtered | global min=" << setw(8) << double(globalFiltMin) / 1000 << " us"
+	     << " | global max=" << setw(8) << double(globalFiltMax) / 1000 << " us"
+	     << " | avg mean=" << setw(8) << double(avgFiltMean) / 1000 << " us"
+	     << " | median=" << setw(8) << double(medianFiltMean) / 1000 << " us" << endl;
+	cout << "=========================================" << endl;
+}
+
+ThreadStats DoLog()
 {
 	std::vector<uint64_t> logtimes(NUM_ITER);
 	std::vector<uint64_t> filteredtimes(NUM_ITER*FILTERED_RATIO);
@@ -38,10 +107,10 @@ void DoLog()
 
 	auto id = std::this_thread::get_id();
 	for (size_t i = 0; i < NUM_ITER; i++) {
-		sprintf(buf, "thread_id=%5u iteration=%u", id, (unsigned int)i);
+		sprintf(buf, "thread_id=%5zu iteration=%u", std::hash<std::thread::id>{}(id), (unsigned int)i);
 		std::string message(buf);
 		auto start_time = std::chrono::high_resolution_clock::now();
-		SLOG(LogLevel::INFO, AREA, message);
+		SLOG(LogLevel::INFO, AREA_ID, message);
 		//LOG(LogLevel::INFO, AREA) << "thread_id=" << id << " iteration=" << i;
 		auto stop_time = std::chrono::high_resolution_clock::now();
 		logtimes[i] = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_time - start_time).count();
@@ -49,7 +118,7 @@ void DoLog()
 		for (size_t j = 0; j < FILTERED_RATIO; j++)
 		{
 			auto start_time = std::chrono::high_resolution_clock::now();
-			LOG(LogLevel::INFO, FILTERED) << "thread_id=" << std::setw(5) << id << " iteration=" << i;
+			LOG(LogLevel::TRACE, FILTERED_ID) << "thread_id=" << std::setw(5) << id << " iteration=" << i;
 			auto stop_time = std::chrono::high_resolution_clock::now();
 			filteredtimes[i * FILTERED_RATIO + j] = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_time - start_time).count();
 		}
@@ -60,7 +129,7 @@ void DoLog()
 
 	auto minmaxf = std::minmax_element(filteredtimes.begin(), filteredtimes.end());
 	auto meantimef = mean(filteredtimes);
-	LOG(LogLevel::INFO, COUT) << "thread_id=" << setw(5) << id << 
+	LOG(LogLevel::INFO, COUT_ID) << "thread_id=" << setw(5) << id << 
 		" logged time | min=" << setw(6) << fixed << setprecision(2) << double(*minmax.first)/1000 << " us | "
 		"max=" << setw(6) << fixed << setprecision(2) << double(*minmax.second)/1000 << " us | "
 		"mean=" << setw(6) << fixed << setprecision(2) << double(meantime)/1000 << " us | " <<
@@ -68,6 +137,7 @@ void DoLog()
 		"max = " << setw(6) << fixed << setprecision(2) << double(*minmaxf.second)/1000 << " us | "
 		"mean = " << setw(6) << fixed << setprecision(2) << double(meantimef)/1000 << " us | ";
 
+	return { *minmax.first, *minmax.second, meantime, *minmaxf.first, *minmaxf.second, meantimef };
 }
 
 void PerfTest()
@@ -75,7 +145,7 @@ void PerfTest()
 	const char* fileName = "perftest.log";
 	
 	std::shared_ptr<AreaFilter> filter(new AreaFilter);
-	filter->SetFilter(AREA, LogLevel::INFO);
+	filter->SetFilter(AREA_ID, LogLevel::INFO);
 	filter->SetReportingLevel(LogLevel::ERROR);
 
 	Logger::Instance().AddSink(
@@ -83,7 +153,7 @@ void PerfTest()
 			SinkPtr(new AsyncSink(SinkPtr(new SinkFile(fileName)))), filter)));
 	
 	std::shared_ptr<AreaFilter> filter1(new AreaFilter);
-	filter1->SetFilter(COUT, LogLevel::INFO);
+	filter1->SetFilter(COUT_ID, LogLevel::INFO);
 	filter1->SetReportingLevel(LogLevel::ERROR);
 
 	Logger::Instance().SetReportingLevel(LogLevel::TRACE);
@@ -92,14 +162,17 @@ void PerfTest()
 		FilteredSinkPtr(new FilteredSink(
 			SinkPtr(new SinkCout), filter1)));
 
-	LOG(LogLevel::INFO, COUT) << "Perfomanse test started with " << NUM_THREADS << " threads"
+	LOG(LogLevel::INFO, COUT_ID) << "Perfomanse test started with " << NUM_THREADS << " threads"
 		<< " and " << NUM_ITER << " number of iteration. Filtered ratio is set to " << FILTERED_RATIO;
 
 	std::vector<std::thread> threads;
 	threads.resize(NUM_THREADS);
+	std::vector<ThreadStats> allStats(NUM_THREADS);
 
 	for (size_t i = 0; i < NUM_THREADS; i++) {
-		threads[i] = std::thread(DoLog);
+		threads[i] = std::thread([&allStats, i]() {
+			allStats[i] = DoLog();
+		});
 	}
 
 	for (size_t i = 0; i < NUM_THREADS; i++) {
@@ -107,15 +180,16 @@ void PerfTest()
 	}
 
 	Logger::Instance().Shutdown();
+	PrintSummary("asynclog", allStats);
 }
 
-void DoLog1()
+ThreadStats DoLog1()
 {
 	std::vector<uint64_t> logtimes(NUM_ITER);
 	std::vector<uint64_t> filteredtimes(NUM_ITER * FILTERED_RATIO);
 
 	log4cplus::Logger logger = log4cplus::Logger::getInstance(AREA);
-	log4cplus::Logger rootLogger = log4cplus::Logger::getInstance("rootLogger");
+	log4cplus::Logger filteredLogger = log4cplus::Logger::getInstance(FILTERED);
 	log4cplus::Logger loggerCOUT = log4cplus::Logger::getInstance(COUT);
 
 	auto id = std::this_thread::get_id();
@@ -128,7 +202,7 @@ void DoLog1()
 		for (size_t j = 0; j < FILTERED_RATIO; j++)
 		{
 			auto start_time = std::chrono::high_resolution_clock::now();
-			LOG4CPLUS_INFO(rootLogger, LOG4CPLUS_TEXT("thread_id=") << std::setw(5) << id << LOG4CPLUS_TEXT(" iteration=") << i);
+			LOG4CPLUS_INFO(filteredLogger, LOG4CPLUS_TEXT("thread_id=") << std::setw(5) << id << LOG4CPLUS_TEXT(" iteration=") << i);
 			auto stop_time = std::chrono::high_resolution_clock::now();
 			filteredtimes[i * FILTERED_RATIO + j] = std::chrono::duration_cast<std::chrono::nanoseconds>(stop_time - start_time).count();
 		}
@@ -139,10 +213,10 @@ void DoLog1()
 	LOG4CPLUS_INFO(loggerCOUT, LOG4CPLUS_TEXT("thread_id=") << std::setw(5) << id << LOG4CPLUS_TEXT(" logging time: min time=") << double(*minmax.first) / 1000
 		<< LOG4CPLUS_TEXT(" us, max time=") << double(*minmax.second) / 1000 << LOG4CPLUS_TEXT(" us, mean time=") << double(meantime) / 1000 << LOG4CPLUS_TEXT(" us"));
 
-	//auto minmaxf = std::minmax_element(filteredtimes.begin(), filteredtimes.end());
-	//auto meantimef = mean(filteredtimes);
-	//LOG4CPLUS_INFO(loggerCOUT, LOG4CPLUS_TEXT("thread_id=") << std::setw(5) << id << LOG4CPLUS_TEXT(" logging time: min time=") << *minmaxf.first
-	//	<< LOG4CPLUS_TEXT(" ns, max time=") << *minmaxf.second << LOG4CPLUS_TEXT(" ns, mean time=") << meantimef << LOG4CPLUS_TEXT(" ns"));
+	auto minmaxf = std::minmax_element(filteredtimes.begin(), filteredtimes.end());
+	auto meantimef = mean(filteredtimes);
+
+	return { *minmax.first, *minmax.second, meantime, *minmaxf.first, *minmaxf.second, meantimef };
 }
 
 void PerfTest1()
@@ -152,15 +226,23 @@ void PerfTest1()
 	config.configure();
 
 	log4cplus::Logger logger = log4cplus::Logger::getInstance(COUT);
+	log4cplus::Logger filteredLogger = log4cplus::Logger::getInstance(FILTERED);
+
+	// Verify filtering is working
+	LOG4CPLUS_INFO(logger, LOG4CPLUS_TEXT("FILTERED logger effective level: ") 
+		<< (filteredLogger.isEnabledFor(log4cplus::INFO_LOG_LEVEL) ? "INFO (NOT filtered)" : "ERROR (filtered)"));
 
 	LOG4CPLUS_INFO(logger, LOG4CPLUS_TEXT("Perfomanse test started with ") << NUM_THREADS << LOG4CPLUS_TEXT(" threads")
 		<< LOG4CPLUS_TEXT(" and ") << NUM_ITER << LOG4CPLUS_TEXT(" number of iteration. Filtered ratio is set to ") << FILTERED_RATIO);
 
 	std::vector<std::thread> threads;
 	threads.resize(NUM_THREADS);
+	std::vector<ThreadStats> allStats(NUM_THREADS);
 
 	for (size_t i = 0; i < NUM_THREADS; i++) {
-		threads[i] = std::thread(DoLog1);
+		threads[i] = std::thread([&allStats, i]() {
+			allStats[i] = DoLog1();
+		});
 	}
 
 	for (size_t i = 0; i < NUM_THREADS; i++) {
@@ -168,12 +250,13 @@ void PerfTest1()
 	}
 
 	logger.shutdown();
+	PrintSummary("log4cplus", allStats);
 }
 
 int main(int argc, char** argv)
 {
 	PerfTest();
-	//PerfTest1();
+	PerfTest1();
 
 	return 0;
 }

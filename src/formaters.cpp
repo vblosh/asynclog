@@ -3,6 +3,7 @@
 #include <array>
 
 #include "formaters.h"
+#include "log_areas.h"
 
 namespace asynclog 
 {
@@ -18,8 +19,8 @@ void LogFormatter::Format(std::ostream& buf, const Logdata& logdata)
 
     buf << std::put_time(&tm, timeformat.c_str()) << ' ';
     buf << labels[(unsigned char)logdata.level] << " : ";
-    if (!logdata.area.empty()) {
-        buf << '[' << logdata.area << "] ";
+    if (logdata.areaId != areas::DEFAULT) {
+        buf << '[' << areas::getAreaName(logdata.areaId) << "] ";
     }
     buf << logdata.message << std::endl;
 }

@@ -7,13 +7,14 @@
 #include "logging.h"
 #include "sinksimp.h"
 #include "testsink.h"
+#include "log_areas.h"
 
 using namespace std;
 using namespace asynclog;
 
 class LoggerTest : public ::testing::Test {
 protected:
-	std::string area = "AREA1";
+	int area = areas::TEST;
 	string message = "Hello, world!";
 
 	void SetUp() override {
@@ -24,17 +25,17 @@ protected:
 		Logger::Instance().Shutdown();
 	}
 
-	bool LogAndCheck(LogLevel level, const std::string& area, const std::string& message, TestSink* testSink) {
+	bool LogAndCheck(LogLevel level, int areaId, const std::string& message, TestSink* testSink) {
 		unsigned int oldCount = testSink->Count();
 		Timestamp before = std::time(nullptr);
-		LOG(LogLevel::ERROR, area) << message;
+		LOG(LogLevel::ERROR, areaId) << message;
 		Timestamp after = std::time(nullptr);
 
 		bool res = true;
 		res &= testSink->Count() == oldCount + 1;
 		res &= std::difftime(after, before) >= std::difftime(testSink->LastEntry().timestamp, before);
 		res &= LogLevel::ERROR == testSink->LastEntry().level;
-		res &= area == testSink->LastEntry().area;
+		res &= areaId == testSink->LastEntry().areaId;
 		res &= message == testSink->LastEntry().message;
 		return res;
 	}
@@ -52,7 +53,7 @@ TEST_F(LoggerTest, testLOG)
 	ASSERT_EQ(1, testSink->Count());
 	ASSERT_GE(std::difftime(after, before), std::difftime(testSink->LastEntry().timestamp, before));
 	ASSERT_EQ(LogLevel::ERROR, testSink->LastEntry().level);
-	ASSERT_EQ(area, testSink->LastEntry().area);
+	ASSERT_EQ(area, testSink->LastEntry().areaId);
 	ASSERT_EQ(message, testSink->LastEntry().message);
 
 	before = std::time(nullptr);
@@ -62,8 +63,7 @@ TEST_F(LoggerTest, testLOG)
 	ASSERT_EQ(2, testSink->Count());
 	ASSERT_GE(std::difftime(after, before), std::difftime(testSink->LastEntry().timestamp, before));
 	ASSERT_EQ(LogLevel::ERROR, testSink->LastEntry().level);
-	string empty;
-	ASSERT_EQ(empty, testSink->LastEntry().area);
+	ASSERT_EQ(0, testSink->LastEntry().areaId);
 	ASSERT_EQ(message, testSink->LastEntry().message);
 }
 
@@ -79,7 +79,7 @@ TEST_F(LoggerTest, testSLOG)
 	ASSERT_EQ(1, testSink->Count());
 	ASSERT_GE(std::difftime(after, before), std::difftime(testSink->LastEntry().timestamp, before));
 	ASSERT_EQ(LogLevel::ERROR, testSink->LastEntry().level);
-	ASSERT_EQ(area, testSink->LastEntry().area);
+	ASSERT_EQ(area, testSink->LastEntry().areaId);
 	ASSERT_EQ(message, testSink->LastEntry().message);
 
 	before = std::time(nullptr);
@@ -89,8 +89,7 @@ TEST_F(LoggerTest, testSLOG)
 	ASSERT_EQ(2, testSink->Count());
 	ASSERT_GE(std::difftime(after, before), std::difftime(testSink->LastEntry().timestamp, before));
 	ASSERT_EQ(LogLevel::ERROR, testSink->LastEntry().level);
-	string empty;
-	ASSERT_EQ(empty, testSink->LastEntry().area);
+	ASSERT_EQ(0, testSink->LastEntry().areaId);
 	ASSERT_EQ(message, testSink->LastEntry().message);
 }
 
@@ -196,7 +195,7 @@ void DoLog()
 	const size_t NUM_ITER = 100;
 	auto id = std::this_thread::get_id();
 	for (size_t i = 0; i < NUM_ITER; i++) {
-		LOG(LogLevel::INFO, "THREAD_TEST") << "thread_id=" << std::setw(6) << id << " iteration=" << i;
+		LOG(LogLevel::INFO, areas::TEST) << "thread_id=" << std::setw(6) << id << " iteration=" << i;
 	}
 }
 
