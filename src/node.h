@@ -1,8 +1,8 @@
 #pragma once
 #include <deque>
 #include <vector>
-#include <mutex>
 #include "logdata.h"
+#include "spinlock.h"
 
 namespace asynclog
 {
@@ -32,7 +32,7 @@ namespace asynclog
 	{
 		std::deque<std::vector<Node>> data;
 		size_t chunkSize;
-		Node* freeTail;		// tail of free queue of deallocated nodes
+		Node* freeTail;
 		spinlock allocLock;
 	public:
  		NodeAllocator(size_t capacity) : chunkSize(capacity), freeTail(nullptr) {
