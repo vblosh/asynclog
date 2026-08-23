@@ -71,4 +71,19 @@ private:
     void Consume(std::stop_token stoken);
 };
 
+class CompositeSink : public ISink
+{
+    std::vector<SinkPtr> sinks;
+
+public:
+    CompositeSink() = default;
+    CompositeSink(std::initializer_list<SinkPtr> asinks);
+    explicit CompositeSink(std::vector<SinkPtr> asinks);
+
+    void AddSink(SinkPtr asink);
+
+    void Log(const Logdata& logdata) override;
+    void Log(Logdata&& logdata) override;
+};
+
 }

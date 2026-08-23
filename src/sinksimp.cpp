@@ -80,4 +80,37 @@ void AsyncSink::Consume(std::stop_token stoken)
     }
 }
 
+CompositeSink::CompositeSink(std::initializer_list<SinkPtr> asinks)
+    : sinks(asinks)
+{
+}
+
+CompositeSink::CompositeSink(std::vector<SinkPtr> asinks)
+    : sinks(std::move(asinks))
+{
+}
+
+void CompositeSink::AddSink(SinkPtr asink)
+{
+    sinks.push_back(std::move(asink));
+}
+
+void CompositeSink::Log(const Logdata& logdata)
+{
+    for (auto& s : sinks) {
+        s->Log(logdata);
+    }
+}
+
+void CompositeSink::Log(Logdata&& logdata)
+{
+    if (sinks.empty())
+        return;
+
+    for (size_t i = 0; i + 1 < sinks.size(); ++i) {
+        sinks[i]->Log(logdata);
+    }
+    sinks.back()->Log(std::move(logdata));
+}
+
 }
