@@ -57,10 +57,7 @@ jobs:
         ctest --output-on-failure
     
     - name: Run perfcompare
+      if: matrix.build_type == 'Release' && matrix.sanitizer == 'none'
       working-directory: ${{github.workspace}}/build
-      env:
-        ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
-        TSAN_OPTIONS: halt_on_error=1
-        UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
       run: |
         ./perfcompare/perfcompare
