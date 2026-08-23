@@ -18,9 +18,9 @@ void FilteredSink::Log(Logdata&& logdata)
     sink->Log(std::move(logdata));
 }
 
-bool FilteredSink::Enabled(LogLevel level, const std::string& area)
+bool FilteredSink::Enabled(LogLevel level, int areaId)
 {
-    return filter->Enabled(level, area);
+    return filter->Enabled(level, areaId);
 }
 
 void FilteredSink::SetReportingLevel(LogLevel level)

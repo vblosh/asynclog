@@ -31,7 +31,7 @@ public:
 
     [[nodiscard]] bool Enabled(const LogLevel level) const;
 
-    [[nodiscard]] bool Enabled(const LogLevel level, const std::string& area) const;
+    [[nodiscard]] bool Enabled(const LogLevel level, int areaId) const;
 
     void Log(Logdata&& logdata);
 

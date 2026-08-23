@@ -8,15 +8,16 @@
 #include <tuple>
 
 #include "sinksimp.h"
+#include "log_areas.h"
 
 #include "logging.h"
 
 using namespace std;
 using namespace asynclog;
 
-string AREA = "PERFOMANCE_TEST";
-string COUT = "COUT";
-string FILTERED = "FILTERED";
+const int AREA = areas::PERFORMANCE;
+const int COUT = areas::DEFAULT;
+const int FILTERED = areas::DEBUG;
 
 const size_t NUM_ITER = 1000;
 const size_t NUM_THREADS = 10;
