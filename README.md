@@ -93,6 +93,9 @@ that don't reach any sink. asynclog uses compile-time elimination
 - Asynchronous I/O keeps logging off the critical path
 - Integer area IDs provide O(1) filter lookups (no hash map overhead)
 - Compile-time log level elimination removes disabled logs entirely
+- Chunked pool allocator (`NodeAllocator`) pre-reserves nodes in contiguous
+  memory and recycles deallocated nodes via a free list first before allocating
+  new ones, avoiding per-message heap allocations on the hot path
 
 Run the benchmark yourself:
 ```sh
