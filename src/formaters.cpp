@@ -6,7 +6,6 @@
 
 namespace asynclog 
 {
-std::array<std::string, 8> LogFormatter::labels{ "TRACE", "DEBUG", "INFO ", "NOTICE", "WARN ", "ERROR", "FATAL", "NONE " };
 
 void LogFormatter::Format(std::ostream& buf, const Logdata& logdata)
 {

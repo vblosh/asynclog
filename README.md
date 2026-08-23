@@ -1,6 +1,6 @@
 # asynclog
 
-A lightweight, thread-safe asynchronous logging library for C++14.
+A lightweight, thread-safe asynchronous logging library for C++20.
 
 `asynclog` routes log messages from any number of producer threads to one or
 more sinks through a lock-free MPSC (multi-producer single-consumer) queue, so
@@ -26,9 +26,15 @@ your application.
 ## Requirements
 
 - CMake 3.8+
-- A C++14 compiler (GCC, Clang, MSVC)
+- A C++20 compiler (GCC 10+, Clang 14+, MSVC 2019 16.9+)
 - GoogleTest (unit tests only)
 - log4cplus (optional `perfcompare` benchmark only)
+
+The library takes advantage of modern C++: `std::jthread` /
+`std::stop_token` drive the async consumer thread (no manual stop flag or
+join), the `LOG` macro uses standard `__VA_OPT__` instead of the
+`##__VA_ARGS__` compiler extension, plus C++17 `inline static` members,
+`std::scoped_lock` and `[[nodiscard]]`.
 
 ## Building
 

@@ -1,6 +1,7 @@
 #pragma once
 #include <deque>
 #include <vector>
+#include <mutex>
 #include "logdata.h"
 
 namespace asynclog
@@ -48,7 +49,7 @@ namespace asynclog
 
 		template<typename T>
 		Node* allocate(T&& node) {
-			std::lock_guard<spinlock> lock(allocLock);
+			std::scoped_lock lock(allocLock);
 			Node* ret;
 			if (freeTail) { // there are deallocated nodes in free queue
 				ret = freeTail;
@@ -69,13 +70,13 @@ namespace asynclog
 		}
 
 		void deallocate(Node* node) {
-			std::lock_guard<spinlock> lock(allocLock);
+			std::scoped_lock lock(allocLock);
 			node->next = freeTail;
 			freeTail = node;
 		}
 
 		void truncateBuffer() {
-			std::lock_guard<spinlock> lock(allocLock);
+			std::scoped_lock lock(allocLock);
 			data.resize(1);
 		}
 	};
